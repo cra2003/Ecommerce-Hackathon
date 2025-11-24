@@ -8,7 +8,7 @@ on:
 
 jobs:
   # -------------------------------
-  # 0) Detect Changed Workers
+  # 0) Detect Changed Workers (runs in parallel with CI)
   # -------------------------------
   detect-changes:
     name: Detect Changed Workers
@@ -79,7 +79,7 @@ jobs:
           fi
 
   # -------------------------------
-  # 1) CI Checks (Lint + Format + Test + Knip)
+  # 1) CI Checks (runs in parallel with detect-changes)
   # -------------------------------
   ci:
     name: CI Checks
@@ -212,7 +212,7 @@ jobs:
           fi
 
   # -------------------------------
-  # 2.5) Preview Health Check
+  # 2.5) Preview Health Check (per worker)
   # -------------------------------
   preview_health_check:
     name: Preview Health Check (${{ matrix.worker }})
@@ -222,10 +222,13 @@ jobs:
     strategy:
       matrix:
         worker: ${{ fromJson(needs.detect-changes.outputs.workers-json) }}
+        include:
+          - worker: order-worker
+            url: https://orders-worker-preview.aadhi18082003.workers.dev/health
+          - worker: product-worker
+            url: https://products-worker-preview.aadhi18082003.workers.dev/health
       fail-fast: false
     continue-on-error: true
-    outputs:
-      status: ${{ steps.check.outcome }}
     steps:
       - name: Wait before preview health check
         run: sleep 10
@@ -235,18 +238,40 @@ jobs:
         run: |
           echo "Running preview health check for ${{ matrix.worker }}..."
           WORKER_NAME="${{ matrix.worker }}"
-          # Handle different worker name formats
-          if [ "$WORKER_NAME" = "order-worker" ]; then
+          
+          # Use matrix URL if defined, otherwise construct from worker name
+          if [ -n "${{ matrix.url }}" ]; then
+            URL="${{ matrix.url }}"
+          elif [ "$WORKER_NAME" = "order-worker" ]; then
             URL="https://orders-worker-preview.aadhi18082003.workers.dev/health"
           elif [ "$WORKER_NAME" = "product-worker" ]; then
             URL="https://products-worker-preview.aadhi18082003.workers.dev/health"
           else
             URL="https://${WORKER_NAME}-preview.aadhi18082003.workers.dev/health"
           fi
-          curl -f "$URL" || exit 1
+          
+          echo "Checking health at: $URL"
+          if curl -f --max-time 30 "$URL"; then
+            echo "✅ Health check passed for $WORKER_NAME"
+            echo "status=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Health check failed for $WORKER_NAME"
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "$WORKER_NAME" >> failed_workers.txt
+            exit 1
+          fi
+
+      - name: Upload failed worker marker
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-worker-${{ matrix.worker }}-preview
+          path: failed_workers.txt
+          if-no-files-found: ignore
+          retention-days: 1
 
   # -------------------------------
-  # 2.6) Automatic Preview Rollback
+  # 2.6) Automatic Preview Rollback (per worker - only if that worker's health check failed)
   # -------------------------------
   rollback_preview:
     name: Rollback Preview (${{ matrix.worker }})
@@ -259,12 +284,42 @@ jobs:
     strategy:
       matrix:
         worker: ${{ fromJson(needs.detect-changes.outputs.workers-json) }}
+        include:
+          - worker: order-worker
+            url: https://orders-worker-preview.aadhi18082003.workers.dev/health
+          - worker: product-worker
+            url: https://products-worker-preview.aadhi18082003.workers.dev/health
       fail-fast: false
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Download failed worker artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: failed-worker-*-preview
+          path: failed-workers
+          if-no-files-found: ignore
+          merge-multiple: true
+
+      - name: Check if this worker needs rollback
+        id: should_rollback
+        run: |
+          WORKER_NAME="${{ matrix.worker }}"
+          # Check if this worker's artifact directory exists (meaning it failed)
+          if [ -d "failed-workers/failed-worker-${WORKER_NAME}-preview" ]; then
+            echo "✅ $WORKER_NAME health check failed - will rollback"
+            echo "rollback=true" >> $GITHUB_OUTPUT
+          elif [ -d "failed-workers" ] && find failed-workers -name "*${WORKER_NAME}*" -type d | grep -q .; then
+            echo "✅ $WORKER_NAME health check failed - will rollback"
+            echo "rollback=true" >> $GITHUB_OUTPUT
+          else
+            echo "⏭️  $WORKER_NAME health check passed - skipping rollback"
+            echo "rollback=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Rollback preview to previous version
+        if: steps.should_rollback.outputs.rollback == 'true'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -345,7 +400,7 @@ jobs:
           fi
 
   # -------------------------------
-  # 3.5) Production Health Check
+  # 3.5) Production Health Check (per worker)
   # -------------------------------
   health_check_prod:
     name: Production Health Check (${{ matrix.worker }})
@@ -358,10 +413,13 @@ jobs:
     strategy:
       matrix:
         worker: ${{ fromJson(needs.detect-changes.outputs.workers-json) }}
+        include:
+          - worker: order-worker
+            url: https://orders-worker.aadhi18082003.workers.dev/health
+          - worker: product-worker
+            url: https://products-worker.aadhi18082003.workers.dev/health
       fail-fast: false
     continue-on-error: true
-    outputs:
-      status: ${{ steps.check.outcome }}
     steps:
       - name: Wait before health check
         run: sleep 10
@@ -371,17 +429,40 @@ jobs:
         run: |
           echo "Running production health check for ${{ matrix.worker }}..."
           WORKER_NAME="${{ matrix.worker }}"
-          if [ "$WORKER_NAME" = "order-worker" ]; then
+          
+          # Use matrix URL if defined, otherwise construct from worker name
+          if [ -n "${{ matrix.url }}" ]; then
+            URL="${{ matrix.url }}"
+          elif [ "$WORKER_NAME" = "order-worker" ]; then
             URL="https://orders-worker.aadhi18082003.workers.dev/health"
           elif [ "$WORKER_NAME" = "product-worker" ]; then
             URL="https://products-worker.aadhi18082003.workers.dev/health"
           else
             URL="https://${WORKER_NAME}.aadhi18082003.workers.dev/health"
           fi
-          curl -f "$URL" || exit 1
+          
+          echo "Checking health at: $URL"
+          if curl -f --max-time 30 "$URL"; then
+            echo "✅ Health check passed for $WORKER_NAME"
+            echo "status=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Health check failed for $WORKER_NAME"
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "$WORKER_NAME" >> failed_workers.txt
+            exit 1
+          fi
+
+      - name: Upload failed worker marker
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-worker-${{ matrix.worker }}-prod
+          path: failed_workers.txt
+          if-no-files-found: ignore
+          retention-days: 1
 
   # -------------------------------
-  # 3.6) Automatic Production Rollback
+  # 3.6) Automatic Production Rollback (per worker - only if that worker's health check failed)
   # -------------------------------
   rollback_prod:
     name: Rollback Production (${{ matrix.worker }})
@@ -395,12 +476,42 @@ jobs:
     strategy:
       matrix:
         worker: ${{ fromJson(needs.detect-changes.outputs.workers-json) }}
+        include:
+          - worker: order-worker
+            url: https://orders-worker.aadhi18082003.workers.dev/health
+          - worker: product-worker
+            url: https://products-worker.aadhi18082003.workers.dev/health
       fail-fast: false
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Download failed worker artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: failed-worker-*-prod
+          path: failed-workers
+          if-no-files-found: ignore
+          merge-multiple: true
+
+      - name: Check if this worker needs rollback
+        id: should_rollback
+        run: |
+          WORKER_NAME="${{ matrix.worker }}"
+          # Check if this worker's artifact directory exists (meaning it failed)
+          if [ -d "failed-workers/failed-worker-${WORKER_NAME}-preview" ]; then
+            echo "✅ $WORKER_NAME health check failed - will rollback"
+            echo "rollback=true" >> $GITHUB_OUTPUT
+          elif [ -d "failed-workers" ] && find failed-workers -name "*${WORKER_NAME}*" -type d | grep -q .; then
+            echo "✅ $WORKER_NAME health check failed - will rollback"
+            echo "rollback=true" >> $GITHUB_OUTPUT
+          else
+            echo "⏭️  $WORKER_NAME health check passed - skipping rollback"
+            echo "rollback=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Rollback to previous version
+        if: steps.should_rollback.outputs.rollback == 'true'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -418,4 +529,3 @@ jobs:
               --data "{\"text\": \"🚨 *PRODUCTION HEALTH FAILED for ${{ matrix.worker }}* — Auto rollback executed.\n🔁 System restored to last working version.\"}" \
               $SLACK_WEBHOOK_URL || true
           fi
-

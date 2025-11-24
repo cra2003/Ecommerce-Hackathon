@@ -20,7 +20,7 @@ export async function healthHandler(c) {
 	if (cacheBinding) {
 		try {
 			const testKey = `health-check-${Date.now()}`;
-			await cacheBinding.put(testKey, 'test', { expirationTtl: 1 });
+			await cacheBinding.put(testKey, 'test', { expirationTtl: 60 });
 			const value = await cacheBinding.get(testKey);
 			await cacheBinding.delete(testKey);
 			checks.bindings.PRICE_CACHE = { status: 'ok', test: value === 'test' };
