@@ -45,11 +45,13 @@ When prompted, paste your API key/endpoint.
 The worker supports different OpenTelemetry providers:
 
 #### Honeycomb (Default)
+
 - Endpoint: `https://api.honeycomb.io/v1/traces`
 - Header: `X-Honeycomb-Team` (contains API key)
 - Set only `OTEL_INGEST_API_KEY`
 
 #### Grafana Cloud
+
 - Endpoint: `https://otlp-gateway-<region>.grafana.net/otlp`
 - Header: `Authorization: Basic <base64-encoded-api-key>`
 - Set both:
@@ -57,6 +59,7 @@ The worker supports different OpenTelemetry providers:
   - `OTEL_EXPORTER_OTLP_ENDPOINT` = Your Grafana OTLP endpoint
 
 #### Generic OTLP Endpoint
+
 - Header: `Authorization: Bearer <api-key>`
 - Set both:
   - `OTEL_INGEST_API_KEY` = Your API key
@@ -75,6 +78,7 @@ Traces should start appearing in your observability platform within a few minute
 ## What Gets Traced
 
 The instrumentation automatically traces:
+
 - All HTTP requests and responses
 - Fetch calls (if enabled)
 - Service name: `products-worker`
@@ -90,4 +94,3 @@ OTEL_EXPORTER_OTLP_ENDPOINT=https://api.honeycomb.io/v1/traces
 ```
 
 **Note:** Don't commit `.dev.vars` to git (it's already in `.gitignore`).
-

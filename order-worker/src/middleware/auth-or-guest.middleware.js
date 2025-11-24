@@ -17,10 +17,12 @@ export default async function authOrGuestMiddleware(c, next) {
 		c.set('guest_session_id', authInfo.guest_session_id);
 		await next();
 	} else {
-		return c.json({ 
-			success: false, 
-			error: 'Authentication required. Please log in or continue as guest.' 
-		}, 401);
+		return c.json(
+			{
+				success: false,
+				error: 'Authentication required. Please log in or continue as guest.',
+			},
+			401,
+		);
 	}
 }
-

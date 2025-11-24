@@ -8,6 +8,5 @@ export default cors({
 	},
 	allowMethods: ['GET', 'POST', 'OPTIONS'],
 	allowHeaders: ['Content-Type'],
-	credentials: false
+	credentials: false,
 });
-

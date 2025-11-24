@@ -13,4 +13,3 @@ export function healthHandler(c) {
 		version: '1.0.0',
 	});
 }
-

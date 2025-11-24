@@ -36,4 +36,3 @@ export function getCookie(request, name) {
 	const cookies = parseCookies(request);
 	return cookies[name] || null;
 }
-

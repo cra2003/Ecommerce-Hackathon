@@ -11,7 +11,7 @@ export async function getCached(c, key) {
 		console.log('[cache] Cache binding not available or invalid');
 		return null;
 	}
-	
+
 	try {
 		const cached = await cacheBinding.get(key, 'json');
 		if (cached) {
@@ -24,7 +24,7 @@ export async function getCached(c, key) {
 		return null;
 	}
 }
-  
+
 export async function setCached(c, key, data, ttl = 300) {
 	// Defensive check - ensure cache binding exists and has the put method
 	const cacheBinding = getCacheBinding(c);
@@ -32,7 +32,7 @@ export async function setCached(c, key, data, ttl = 300) {
 		console.log('[cache] Cache binding not available or invalid, skipping cache write');
 		return;
 	}
-	
+
 	try {
 		await cacheBinding.put(key, JSON.stringify(data), { expirationTtl: ttl });
 		console.log(`💾 Cache stored: ${key} (TTL: ${ttl}s)`);
@@ -48,7 +48,7 @@ export async function invalidateCache(c, keys = []) {
 	if (!cacheBinding || typeof cacheBinding.delete !== 'function') {
 		return;
 	}
-	
+
 	for (const key of keys) {
 		try {
 			await cacheBinding.delete(key);
@@ -58,4 +58,3 @@ export async function invalidateCache(c, keys = []) {
 		}
 	}
 }
-

@@ -4,45 +4,44 @@ import { getPriceHandler } from '../../src/handlers/price.handler.js';
 import * as priceService from '../../src/services/price.service.js';
 
 describe('Price Handler', () => {
-  let c, sandbox;
+	let c, sandbox;
 
-  beforeEach(() => {
-    sandbox = sinon.createSandbox();
-    c = {
-      req: {
-        param: sandbox.stub(),
-        query: sandbox.stub()
-      },
-      env: {
-        DB: {}
-      },
-      json: sandbox.stub().returnsThis()
-    };
-  });
+	beforeEach(() => {
+		sandbox = sinon.createSandbox();
+		c = {
+			req: {
+				param: sandbox.stub(),
+				query: sandbox.stub(),
+			},
+			env: {
+				DB: {},
+			},
+			json: sandbox.stub().returnsThis(),
+		};
+	});
 
-  afterEach(() => sandbox.restore());
+	afterEach(() => sandbox.restore());
 
-  describe('getPriceHandler', () => {
-    it('should return price successfully', async () => {
-      c.req.param.withArgs('sku').returns('P0001');
-      c.req.query.withArgs('product_id').returns('prod123');
-      
-      const fakePrice = { price: 100, is_on_sale: false, discount_percentage: null };
-      sandbox.stub(priceService, 'getPrice').resolves(c.json({ success: true, ...fakePrice }));
+	describe('getPriceHandler', () => {
+		it('should return price successfully', async () => {
+			c.req.param.withArgs('sku').returns('P0001');
+			c.req.query.withArgs('product_id').returns('prod123');
 
-      await getPriceHandler(c);
+			const fakePrice = { price: 100, is_on_sale: false, discount_percentage: null };
+			sandbox.stub(priceService, 'getPrice').resolves(c.json({ success: true, ...fakePrice }));
 
-      expect(priceService.getPrice.calledOnce).to.be.true;
-    });
+			await getPriceHandler(c);
 
-    it('should handle price not found', async () => {
-      c.req.param.withArgs('sku').returns('INVALID');
-      sandbox.stub(priceService, 'getPrice').resolves(c.json({ success: false, error: 'Price not found' }, 404));
+			expect(priceService.getPrice.calledOnce).to.be.true;
+		});
 
-      await getPriceHandler(c);
+		it('should handle price not found', async () => {
+			c.req.param.withArgs('sku').returns('INVALID');
+			sandbox.stub(priceService, 'getPrice').resolves(c.json({ success: false, error: 'Price not found' }, 404));
 
-      expect(priceService.getPrice.calledOnce).to.be.true;
-    });
-  });
+			await getPriceHandler(c);
+
+			expect(priceService.getPrice.calledOnce).to.be.true;
+		});
+	});
 });
-

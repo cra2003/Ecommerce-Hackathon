@@ -31,11 +31,10 @@ You can also access it programmatically:
 
 ```javascript
 // After making a fetch request
-fetch('https://products-worker.aadhi18082003.workers.dev/products')
-  .then(response => {
-    const cfRay = response.headers.get('cf-ray')
-    console.log('CF-Ray ID:', cfRay)
-  })
+fetch('https://products-worker.aadhi18082003.workers.dev/products').then((response) => {
+	const cfRay = response.headers.get('cf-ray');
+	console.log('CF-Ray ID:', cfRay);
+});
 ```
 
 ## Method 3: Using curl
@@ -73,4 +72,3 @@ If you still can't see it:
 2. **Check browser console**: Look for any CORS errors
 3. **Try incognito mode**: Browser extensions might interfere
 4. **Check Network tab filters**: Make sure "All" is selected, not just "XHR" or "Fetch"
-

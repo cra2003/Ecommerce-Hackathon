@@ -24,7 +24,7 @@ describe('User Model', () => {
 				user_id: 'user-123',
 				email_hash: emailHash,
 				first_name: 'John',
-				last_name: 'Doe'
+				last_name: 'Doe',
 			};
 
 			const queryChain = db.prepareFirst('SELECT * FROM users WHERE email_hash = ?', mockUser);
@@ -54,7 +54,7 @@ describe('User Model', () => {
 			const mockUser = {
 				user_id: userId,
 				first_name: 'John',
-				last_name: 'Doe'
+				last_name: 'Doe',
 			};
 
 			const queryChain = db.prepareFirst('SELECT * FROM users WHERE user_id = ?', mockUser);
@@ -95,7 +95,7 @@ describe('User Model', () => {
 				status: 'active',
 				disabled_reason: null,
 				created_ip: '127.0.0.1',
-				user_agent: 'test-agent'
+				user_agent: 'test-agent',
 			};
 
 			const queryChain = db.prepareRun('INSERT INTO users', { success: true });
@@ -123,7 +123,7 @@ describe('User Model', () => {
 				status: 'active',
 				disabled_reason: null,
 				created_ip: '127.0.0.1',
-				user_agent: 'test-agent'
+				user_agent: 'test-agent',
 			};
 
 			const queryChain = db.prepareRun('INSERT INTO users', { success: true });
@@ -150,7 +150,7 @@ describe('User Model', () => {
 				status: 'active',
 				disabled_reason: null,
 				created_ip: '127.0.0.1',
-				user_agent: 'test-agent'
+				user_agent: 'test-agent',
 			};
 
 			const queryChain = db.prepareRun('INSERT INTO users', { success: true });
@@ -167,7 +167,7 @@ describe('User Model', () => {
 			const updates = {
 				first_name: 'Jane',
 				last_name: 'Smith',
-				language: 'fr'
+				language: 'fr',
 			};
 
 			const queryChain = db.prepareRun('UPDATE users SET', { success: true });
@@ -181,7 +181,7 @@ describe('User Model', () => {
 		it('should update updated_at timestamp', async () => {
 			const userId = 'user-123';
 			const updates = {
-				first_name: 'Jane'
+				first_name: 'Jane',
 			};
 
 			db.prepareRun('UPDATE users SET', { success: true });
@@ -201,7 +201,7 @@ describe('User Model', () => {
 				email_cipher: 'new-cipher',
 				phone_cipher: 'new-phone',
 				language: 'es',
-				default_currency: 'EUR'
+				default_currency: 'EUR',
 			};
 
 			const queryChain = db.prepareRun('UPDATE users SET', { success: true });
@@ -251,4 +251,3 @@ describe('User Model', () => {
 		});
 	});
 });
-

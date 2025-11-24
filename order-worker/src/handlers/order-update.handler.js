@@ -4,26 +4,25 @@ import { logEvent, logError } from '../services/log.service.js';
 
 // ================= 4️⃣ UPDATE ORDER (ADMIN) =================
 export async function updateOrderHandler(c) {
-  try {
-    const id = c.req.param('id')
-    const { status, address } = await c.req.json()
-    // Fetch user_id for cache invalidation
-    const existing = await getOrderUserId(c.env.DB, id)
-    await updateOrder(c.env.DB, id, status, address)
-    // Invalidate all users' orders cache is not feasible without listing keys.
-    // Invalidate only the affected user's orders cache key if known.
-    if (existing?.user_id) {
-      await invalidateCache(c, [`orders:${existing.user_id}`])
-    }
-    await logEvent(c.env, 'order_updated', { order_id: Number(id), status, hasAddressUpdate: Boolean(address) })
-    return c.json({ message: 'Order updated successfully' })
-  } catch (err) {
-    await logError(c.env, 'order_update_failed', {
-      order_id: Number(c.req.param('id')),
-      message: err?.message ?? 'Unknown error',
-      stack: err?.stack ?? null,
-    })
-    return c.json({ error: err.message }, 500)
-  }
+	try {
+		const id = c.req.param('id');
+		const { status, address } = await c.req.json();
+		// Fetch user_id for cache invalidation
+		const existing = await getOrderUserId(c.env.DB, id);
+		await updateOrder(c.env.DB, id, status, address);
+		// Invalidate all users' orders cache is not feasible without listing keys.
+		// Invalidate only the affected user's orders cache key if known.
+		if (existing?.user_id) {
+			await invalidateCache(c, [`orders:${existing.user_id}`]);
+		}
+		await logEvent(c.env, 'order_updated', { order_id: Number(id), status, hasAddressUpdate: Boolean(address) });
+		return c.json({ message: 'Order updated successfully' });
+	} catch (err) {
+		await logError(c.env, 'order_update_failed', {
+			order_id: Number(c.req.param('id')),
+			message: err?.message ?? 'Unknown error',
+			stack: err?.stack ?? null,
+		});
+		return c.json({ error: err.message }, 500);
+	}
 }
-

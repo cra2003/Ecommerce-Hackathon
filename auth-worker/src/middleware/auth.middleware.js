@@ -15,4 +15,3 @@ export default async function authMiddleware(c, next) {
 		return c.json({ error: 'Unauthorized' }, 401);
 	}
 }
-

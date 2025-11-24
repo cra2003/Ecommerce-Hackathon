@@ -45,15 +45,7 @@ export function getCookie(request, name) {
  * @returns {string} Set-Cookie header value
  */
 export function createCookieHeader(name, value, options = {}) {
-	const {
-		maxAge = null,
-		expires = null,
-		path = '/',
-		domain = null,
-		secure = true,
-		httpOnly = true,
-		sameSite = 'Lax'
-	} = options;
+	const { maxAge = null, expires = null, path = '/', domain = null, secure = true, httpOnly = true, sameSite = 'Lax' } = options;
 
 	let cookieString = `${name}=${encodeURIComponent(value)}`;
 
@@ -74,15 +66,14 @@ export function createCookieHeader(name, value, options = {}) {
 	}
 
 	if (secure) {
-		cookieString += `; Secure`;
+		cookieString += '; Secure';
 	}
 
 	if (httpOnly) {
-		cookieString += `; HttpOnly`;
+		cookieString += '; HttpOnly';
 	}
 
 	cookieString += `; SameSite=${sameSite}`;
 
 	return cookieString;
 }
-

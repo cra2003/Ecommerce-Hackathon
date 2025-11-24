@@ -5,7 +5,7 @@ import sinon from 'sinon';
  */
 export function createDbStub() {
 	const dbStub = {
-		prepare: sinon.stub()
+		prepare: sinon.stub(),
 	};
 
 	// Helper to create a query result chain
@@ -13,7 +13,7 @@ export function createDbStub() {
 		bind: sinon.stub().returnsThis(),
 		first: sinon.stub().resolves(result),
 		run: sinon.stub().resolves({ success: true, meta: {} }),
-		all: sinon.stub().resolves({ results: result ? [result] : [] })
+		all: sinon.stub().resolves({ results: result ? [result] : [] }),
 	});
 
 	// Default query stub
@@ -51,12 +51,12 @@ export function createEnvStub(overrides = {}) {
 		LOGS: {
 			put: sinon.stub().resolves(),
 			delete: sinon.stub().resolves(),
-			get: sinon.stub().resolves(null)
+			get: sinon.stub().resolves(null),
 		},
 		JWT_SECRET: 'test-jwt-secret-key',
 		AUTH_ENC_KEY: 'test-encryption-key-32-bytes!!',
 		ENCRYPTION_KEY: 'test-encryption-key-32-bytes!!',
-		...overrides
+		...overrides,
 	};
 }
 
@@ -68,7 +68,7 @@ export function createContextStub(overrides = {}) {
 		req: {
 			json: sinon.stub(),
 			param: sinon.stub(),
-			header: sinon.stub().returns(null)
+			header: sinon.stub().returns(null),
 		},
 		env: createEnvStub(overrides.env),
 		get: sinon.stub(),
@@ -83,9 +83,8 @@ export function createContextStub(overrides = {}) {
 			return { status, text: () => Promise.resolve(data) };
 		}),
 		_response: null,
-		...overrides
+		...overrides,
 	};
 
 	return context;
 }
-

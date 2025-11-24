@@ -12,6 +12,5 @@ export default cors({
 	credentials: true,
 	allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 	allowHeaders: ['Content-Type', 'Authorization'],
-	exposeHeaders: ['Content-Type']
+	exposeHeaders: ['Content-Type'],
 });
-

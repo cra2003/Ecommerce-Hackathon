@@ -3,7 +3,7 @@ export async function healthHandler(c) {
 		status: 'healthy',
 		service: 'auth-worker',
 		timestamp: new Date().toISOString(),
-		bindings: {}
+		bindings: {},
 	};
 
 	// Check D1 Database
@@ -34,7 +34,7 @@ export async function healthHandler(c) {
 	// Check secrets (existence only, not values)
 	checks.secrets = {
 		JWT_SECRET: !!c.env.JWT_SECRET,
-		AUTH_ENC_KEY: !!(c.env.AUTH_ENC_KEY || c.env.ENCRYPTION_KEY)
+		AUTH_ENC_KEY: !!(c.env.AUTH_ENC_KEY || c.env.ENCRYPTION_KEY),
 	};
 
 	if (!checks.secrets.JWT_SECRET || !checks.secrets.AUTH_ENC_KEY) {
@@ -48,4 +48,3 @@ export async function healthHandler(c) {
 export function rootHandler(c) {
 	return c.text('Auth API running');
 }
-

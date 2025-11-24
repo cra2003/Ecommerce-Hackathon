@@ -15,10 +15,13 @@ export async function initGuestSession(c) {
 
 		// Validate required fields (at least name and email recommended)
 		if (!name || !email) {
-			return c.json({ 
-				success: false, 
-				error: 'Name and email are required' 
-			}, 400);
+			return c.json(
+				{
+					success: false,
+					error: 'Name and email are required',
+				},
+				400,
+			);
 		}
 
 		// Generate guest session ID
@@ -31,14 +34,10 @@ export async function initGuestSession(c) {
 		// Insert guest session into database
 		await c.env.DB.prepare(
 			`INSERT INTO guest_sessions (guest_session_id, name, email, phone, expires_at)
-			 VALUES (?, ?, ?, ?, ?)`
-		).bind(
-			guestSessionId,
-			name || null,
-			email || null,
-			phone || null,
-			expiresAt.toISOString()
-		).run();
+			 VALUES (?, ?, ?, ?, ?)`,
+		)
+			.bind(guestSessionId, name || null, email || null, phone || null, expiresAt.toISOString())
+			.run();
 
 		// Create cookie header (6 hours = 21600 seconds)
 		// Note: httpOnly is false so frontend can read it and send to other workers
@@ -48,23 +47,29 @@ export async function initGuestSession(c) {
 			path: '/',
 			secure: true,
 			httpOnly: false, // Changed to false so frontend can read it
-			sameSite: 'Lax'
+			sameSite: 'Lax',
 		});
 
 		// Return success with Set-Cookie header
-		return c.json({
-			success: true,
-			guest_session_id: guestSessionId,
-			expires_at: expiresAt.toISOString()
-		}, 200, {
-			'Set-Cookie': cookieHeader
-		});
+		return c.json(
+			{
+				success: true,
+				guest_session_id: guestSessionId,
+				expires_at: expiresAt.toISOString(),
+			},
+			200,
+			{
+				'Set-Cookie': cookieHeader,
+			},
+		);
 	} catch (err) {
 		console.error('[guest] Failed to initialize guest session:', err);
-		return c.json({
-			success: false,
-			error: err.message || 'Failed to initialize guest session'
-		}, 500);
+		return c.json(
+			{
+				success: false,
+				error: err.message || 'Failed to initialize guest session',
+			},
+			500,
+		);
 	}
 }
-

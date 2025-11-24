@@ -25,4 +25,3 @@ export async function decryptData(base64, secret) {
 	const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, data);
 	return td.decode(pt);
 }
-

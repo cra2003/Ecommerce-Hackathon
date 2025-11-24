@@ -25,7 +25,7 @@ describe('Refresh Token Model', () => {
 				token_hash: 'hash-123',
 				user_agent: 'test-agent',
 				ip_address: '127.0.0.1',
-				expires_at: new Date(Date.now() + 86400000).toISOString()
+				expires_at: new Date(Date.now() + 86400000).toISOString(),
 			};
 
 			const queryChain = db.prepareRun('INSERT INTO refresh_tokens', { success: true });
@@ -43,7 +43,7 @@ describe('Refresh Token Model', () => {
 				token_hash: 'hash-123',
 				user_agent: 'Mozilla/5.0',
 				ip_address: '192.168.1.1',
-				expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+				expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
 			};
 
 			const queryChain = db.prepareRun('INSERT INTO refresh_tokens', { success: true });
@@ -92,7 +92,7 @@ describe('Refresh Token Model', () => {
 				user_agent: 'test-agent',
 				ip_address: '127.0.0.1',
 				expires_at: new Date(Date.now() + 86400000).toISOString(),
-				revoked_at: null
+				revoked_at: null,
 			};
 
 			const queryChain = db.prepareFirst('SELECT * FROM refresh_tokens WHERE token_hash = ?', mockToken);
@@ -175,4 +175,3 @@ describe('Refresh Token Model', () => {
 		});
 	});
 });
-

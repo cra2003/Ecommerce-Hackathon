@@ -1,5 +1,5 @@
 export async function getPriceBySku(db, sku) {
-  const query = `
+	const query = `
     SELECT 
       price_id,
       sku,
@@ -14,12 +14,12 @@ export async function getPriceBySku(db, sku) {
     WHERE sku = ? AND status = 'active'
     LIMIT 1
   `;
-  const result = await db.prepare(query).bind(sku).first();
-  return result;
+	const result = await db.prepare(query).bind(sku).first();
+	return result;
 }
 
 export async function getPriceBySkuAndProductId(db, sku, productId) {
-  const query = `
+	const query = `
     SELECT 
       price_id,
       sku,
@@ -34,7 +34,6 @@ export async function getPriceBySkuAndProductId(db, sku, productId) {
     WHERE sku = ? AND product_id = ? AND status = 'active'
     LIMIT 1
   `;
-  const result = await db.prepare(query).bind(sku, productId).first();
-  return result;
+	const result = await db.prepare(query).bind(sku, productId).first();
+	return result;
 }
-

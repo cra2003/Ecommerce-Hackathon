@@ -12,7 +12,7 @@ export async function generateAccessToken(user, secret) {
 		first_name: user.first_name,
 		last_name: user.last_name,
 		email_hash: user.email_hash,
-		pwd: user.password_changed_at ? Math.floor(new Date(user.password_changed_at).getTime() / 1000) : 0
+		pwd: user.password_changed_at ? Math.floor(new Date(user.password_changed_at).getTime() / 1000) : 0,
 	};
 	return new SignJWT(payload).setProtectedHeader({ alg: 'HS256' }).sign(te.encode(secret));
 }
@@ -39,4 +39,3 @@ export async function verifyAccessToken(token, secret) {
 export async function hashRefreshToken(token) {
 	return await sha256Hex(token);
 }
-

@@ -22,7 +22,7 @@ export async function getUserOrGuest(request, env) {
 			if (userId) {
 				return {
 					type: 'user',
-					user_id: String(userId)
+					user_id: String(userId),
 				};
 			}
 		} catch (err) {
@@ -40,10 +40,9 @@ export async function getUserOrGuest(request, env) {
 		// For now, we'll trust the cookie and let the constraint in DB handle validation
 		return {
 			type: 'guest',
-			guest_session_id: guestSessionId
+			guest_session_id: guestSessionId,
 		};
 	}
 
 	return { type: null };
 }
-

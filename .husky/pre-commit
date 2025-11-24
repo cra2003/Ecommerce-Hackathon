@@ -1,0 +1,29 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit checks..."
+
+# Run lint
+echo "📦 Running lint..."
+npm run lint
+LINT_EXIT_CODE=$?
+
+# Run format
+echo "📦 Running format..."
+npm run format
+FORMAT_EXIT_CODE=$?
+
+# Exit with error if any check failed
+if [ $LINT_EXIT_CODE -ne 0 ] || [ $FORMAT_EXIT_CODE -ne 0 ]; then
+	echo ""
+	echo "❌ Pre-commit checks failed!"
+	echo "   - Lint: $([ $LINT_EXIT_CODE -eq 0 ] && echo '✅' || echo '❌')"
+	echo "   - Format: $([ $FORMAT_EXIT_CODE -eq 0 ] && echo '✅' || echo '❌')"
+	echo ""
+	echo "Please fix the errors above before committing."
+	exit 1
+fi
+
+echo ""
+echo "✅ All pre-commit checks passed!"
+exit 0

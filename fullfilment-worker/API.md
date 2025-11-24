@@ -1,6 +1,7 @@
 # Fulfillment Worker API Documentation
 
 ## Overview
+
 The fulfillment worker handles inventory management, warehouse selection, and delivery cost calculation based on postal codes and product availability.
 
 ## Endpoints
@@ -12,39 +13,42 @@ The fulfillment worker handles inventory management, warehouse selection, and de
 **Description:** Returns stock availability for a specific product and size across all warehouses.
 
 **Parameters:**
+
 - `product_id` (path): Product ID
 - `size` (path): Shoe size (e.g., "7", "8", "9")
 
 **Response:**
+
 ```json
 {
-  "success": true,
-  "product_id": "uuid-here",
-  "size": "9",
-  "total_stock": 120,
-  "warehouses": [
-    {
-      "warehouse_id": "wh_001",
-      "warehouse_name": "Mumbai Central Warehouse",
-      "sku": "P0001",
-      "size": "9",
-      "quantity": 45,
-      "express_available": true,
-      "all_sizes_stock": {
-        "7": 30,
-        "8": 40,
-        "9": 45,
-        "10": 35
-      },
-      "currency": "INR",
-      "updated_at": "2025-11-15T10:00:00Z"
-    }
-  ],
-  "available_in_warehouses": 3
+	"success": true,
+	"product_id": "uuid-here",
+	"size": "9",
+	"total_stock": 120,
+	"warehouses": [
+		{
+			"warehouse_id": "wh_001",
+			"warehouse_name": "Mumbai Central Warehouse",
+			"sku": "P0001",
+			"size": "9",
+			"quantity": 45,
+			"express_available": true,
+			"all_sizes_stock": {
+				"7": 30,
+				"8": 40,
+				"9": 45,
+				"10": 35
+			},
+			"currency": "INR",
+			"updated_at": "2025-11-15T10:00:00Z"
+		}
+	],
+	"available_in_warehouses": 3
 }
 ```
 
 **Example:**
+
 ```bash
 curl https://fulfillment-worker.example.workers.dev/api/stock/abc123/9
 ```
@@ -58,12 +62,13 @@ curl https://fulfillment-worker.example.workers.dev/api/stock/abc123/9
 **Description:** Complex fulfillment logic that determines warehouse allocation, delivery costs, and availability for a given order.
 
 **Request Body:**
+
 ```json
 {
-  "postal_code": "400001",
-  "product_id": "uuid-here",
-  "size": "9",
-  "quantity": 5
+	"postal_code": "400001",
+	"product_id": "uuid-here",
+	"size": "9",
+	"quantity": 5
 }
 ```
 
@@ -97,60 +102,62 @@ curl https://fulfillment-worker.example.workers.dev/api/stock/abc123/9
    - Returns both standard and express costs
 
 **Success Response:**
+
 ```json
 {
-  "success": true,
-  "available": true,
-  "fulfillment": {
-    "product_id": "uuid-here",
-    "size": "9",
-    "requested_quantity": 5,
-    "fulfilled_quantity": 5,
-    "allocations": [
-      {
-        "warehouse_id": "wh_001",
-        "warehouse_name": "Mumbai Central Warehouse",
-        "allocated_quantity": 3,
-        "available_stock": 45,
-        "base_days": 1,
-        "tier": "tier_1",
-        "express_available": true,
-        "currency": "INR"
-      },
-      {
-        "warehouse_id": "wh_007",
-        "warehouse_name": "Pune West Warehouse",
-        "allocated_quantity": 2,
-        "available_stock": 30,
-        "base_days": 2,
-        "tier": "tier_2",
-        "express_available": true,
-        "currency": "INR"
-      }
-    ]
-  },
-  "delivery": {
-    "postal_code": "400001",
-    "region": "Mumbai Metro",
-    "state": "Maharashtra",
-    "highest_tier": "tier_2",
-    "tier_description": "Regional warehouse (2-3 days)",
-    "standard_delivery_cost": 49.00,
-    "express_delivery_cost": 149.00,
-    "express_available": true,
-    "free_delivery_threshold": 2999.00,
-    "currency": "INR",
-    "estimated_days": {
-      "min": 1,
-      "max": 2
-    }
-  },
-  "warehouses_used": 2,
-  "tiers_used": ["tier_1", "tier_2"]
+	"success": true,
+	"available": true,
+	"fulfillment": {
+		"product_id": "uuid-here",
+		"size": "9",
+		"requested_quantity": 5,
+		"fulfilled_quantity": 5,
+		"allocations": [
+			{
+				"warehouse_id": "wh_001",
+				"warehouse_name": "Mumbai Central Warehouse",
+				"allocated_quantity": 3,
+				"available_stock": 45,
+				"base_days": 1,
+				"tier": "tier_1",
+				"express_available": true,
+				"currency": "INR"
+			},
+			{
+				"warehouse_id": "wh_007",
+				"warehouse_name": "Pune West Warehouse",
+				"allocated_quantity": 2,
+				"available_stock": 30,
+				"base_days": 2,
+				"tier": "tier_2",
+				"express_available": true,
+				"currency": "INR"
+			}
+		]
+	},
+	"delivery": {
+		"postal_code": "400001",
+		"region": "Mumbai Metro",
+		"state": "Maharashtra",
+		"highest_tier": "tier_2",
+		"tier_description": "Regional warehouse (2-3 days)",
+		"standard_delivery_cost": 49.0,
+		"express_delivery_cost": 149.0,
+		"express_available": true,
+		"free_delivery_threshold": 2999.0,
+		"currency": "INR",
+		"estimated_days": {
+			"min": 1,
+			"max": 2
+		}
+	},
+	"warehouses_used": 2,
+	"tiers_used": ["tier_1", "tier_2"]
 }
 ```
 
 **Insufficient Stock Response:**
+
 ```json
 {
   "success": false,
@@ -164,16 +171,18 @@ curl https://fulfillment-worker.example.workers.dev/api/stock/abc123/9
 ```
 
 **No Coverage Response:**
+
 ```json
 {
-  "success": false,
-  "error": "No warehouse coverage for this postal code",
-  "postal_code": "999999",
-  "message": "Delivery not available to this area"
+	"success": false,
+	"error": "No warehouse coverage for this postal code",
+	"postal_code": "999999",
+	"message": "Delivery not available to this area"
 }
 ```
 
 **Example:**
+
 ```bash
 curl -X POST https://fulfillment-worker.example.workers.dev/api/fulfillment/check \
   -H "Content-Type: application/json" \
@@ -190,21 +199,24 @@ curl -X POST https://fulfillment-worker.example.workers.dev/api/fulfillment/chec
 ## Key Concepts
 
 ### Warehouse Priority
+
 - Warehouses are ordered by proximity to the delivery address
 - 1st warehouse = nearest (fastest delivery)
 - 2nd warehouse = regional (moderate delivery)
 - 3rd+ warehouses = distant (slower delivery)
 
 ### Delivery Tiers
-| Tier | Description | Standard Cost | Express Cost |
-|------|-------------|---------------|--------------|
-| tier_1 | Nearest warehouse (1-2 days) | ₹0 | ₹99 |
-| tier_2 | Regional warehouse (2-3 days) | ₹49 | ₹149 |
-| tier_3 | Distant warehouse (3-4 days) | ₹99 | ₹249 |
+
+| Tier   | Description                   | Standard Cost | Express Cost |
+| ------ | ----------------------------- | ------------- | ------------ |
+| tier_1 | Nearest warehouse (1-2 days)  | ₹0            | ₹99          |
+| tier_2 | Regional warehouse (2-3 days) | ₹49           | ₹149         |
+| tier_3 | Distant warehouse (3-4 days)  | ₹99           | ₹249         |
 
 **Important:** The highest tier used determines the cost. If you need items from both tier_1 and tier_3 warehouses, you pay tier_3 costs.
 
 ### Express Delivery
+
 - Available only if `express_available = 1` for the product in at least one warehouse
 - Costs vary by tier
 - Faster delivery (1-2 days reduction)
@@ -233,27 +245,27 @@ const items = cart.items;
 const fulfillmentChecks = [];
 
 for (const item of items) {
-  const response = await fetch('https://fulfillment-worker.example.workers.dev/api/fulfillment/check', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      postal_code: postalCode,
-      product_id: item.product_id,
-      size: item.size,
-      quantity: item.quantity
-    })
-  });
-  
-  const result = await response.json();
-  fulfillmentChecks.push(result);
+	const response = await fetch('https://fulfillment-worker.example.workers.dev/api/fulfillment/check', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({
+			postal_code: postalCode,
+			product_id: item.product_id,
+			size: item.size,
+			quantity: item.quantity,
+		}),
+	});
+
+	const result = await response.json();
+	fulfillmentChecks.push(result);
 }
 
 // 3. Calculate total delivery cost (use highest tier across all items)
-const allTiers = fulfillmentChecks.flatMap(fc => fc.tiers_used || []);
-const highestTier = ['tier_3', 'tier_2', 'tier_1'].find(t => allTiers.includes(t));
+const allTiers = fulfillmentChecks.flatMap((fc) => fc.tiers_used || []);
+const highestTier = ['tier_3', 'tier_2', 'tier_1'].find((t) => allTiers.includes(t));
 
 // 4. Display delivery options to user
-const deliveryCost = fulfillmentChecks.find(fc => fc.delivery?.highest_tier === highestTier)?.delivery;
+const deliveryCost = fulfillmentChecks.find((fc) => fc.delivery?.highest_tier === highestTier)?.delivery;
 
 // Show:
 // - Standard Delivery: ₹{deliveryCost.standard_delivery_cost} ({estimated_days.max} days)
@@ -265,15 +277,18 @@ const deliveryCost = fulfillmentChecks.find(fc => fc.delivery?.highest_tier === 
 ## Database Schema Reference
 
 ### product_inventory
+
 - `product_id` + `warehouse_id` = UNIQUE
 - `stock` = JSON: `{"6": 20, "7": 10, "8": 15}`
 - `express_available` = 0 or 1
 
 ### postal_code_warehouse_map
+
 - Maps postal code ranges to warehouses
 - `warehouses` = JSON array with priority order
 
 ### delivery_cost_config
+
 - 3 tiers: tier_1, tier_2, tier_3
 - Each has standard and express costs
 - `free_delivery_threshold` for free shipping
@@ -282,34 +297,38 @@ const deliveryCost = fulfillmentChecks.find(fc => fc.delivery?.highest_tier === 
 
 ## Error Handling
 
-| Error | Status | Reason |
-|-------|--------|--------|
-| Product not found | 404 | Product doesn't exist in any warehouse |
-| No coverage | 404 | Postal code not served by any warehouse |
-| Insufficient stock | 400 | Not enough stock to fulfill order |
-| Missing fields | 400 | Required fields missing in request |
-| Server error | 500 | Database or processing error |
+| Error              | Status | Reason                                  |
+| ------------------ | ------ | --------------------------------------- |
+| Product not found  | 404    | Product doesn't exist in any warehouse  |
+| No coverage        | 404    | Postal code not served by any warehouse |
+| Insufficient stock | 400    | Not enough stock to fulfill order       |
+| Missing fields     | 400    | Required fields missing in request      |
+| Server error       | 500    | Database or processing error            |
 
 ---
 
 ## Development
 
 ### Install dependencies:
+
 ```bash
 npm install
 ```
 
 ### Run locally:
+
 ```bash
 npm run dev
 ```
 
 ### Deploy:
+
 ```bash
 npm run deploy
 ```
 
 ### Test endpoints:
+
 ```bash
 # Health check
 curl http://localhost:8787/
@@ -322,4 +341,3 @@ curl -X POST http://localhost:8787/api/fulfillment/check \
   -H "Content-Type: application/json" \
   -d '{"postal_code":"400001","product_id":"abc123","size":"9","quantity":5}'
 ```
-

@@ -22,7 +22,7 @@ describe('Token Service', () => {
 				first_name: 'John',
 				last_name: 'Doe',
 				email_hash: 'email-hash-123',
-				password_changed_at: null
+				password_changed_at: null,
 			};
 			const secret = 'test-secret';
 
@@ -38,7 +38,7 @@ describe('Token Service', () => {
 				first_name: 'John',
 				last_name: 'Doe',
 				email_hash: 'email-hash-123',
-				password_changed_at: new Date().toISOString()
+				password_changed_at: new Date().toISOString(),
 			};
 			const secret = 'test-secret';
 
@@ -53,7 +53,7 @@ describe('Token Service', () => {
 				first_name: 'John',
 				last_name: 'Doe',
 				email_hash: 'email-hash-123',
-				password_changed_at: null
+				password_changed_at: null,
 			};
 			const secret = 'test-secret';
 
@@ -93,7 +93,7 @@ describe('Token Service', () => {
 				first_name: 'John',
 				last_name: 'Doe',
 				email_hash: 'email-hash-123',
-				password_changed_at: null
+				password_changed_at: null,
 			};
 			const secret = 'test-secret';
 
@@ -120,7 +120,7 @@ describe('Token Service', () => {
 				first_name: 'John',
 				last_name: 'Doe',
 				email_hash: 'email-hash-123',
-				password_changed_at: null
+				password_changed_at: null,
 			};
 			const secret = 'test-secret';
 
@@ -129,16 +129,14 @@ describe('Token Service', () => {
 			const payload = {
 				sub: user.user_id,
 				iat: nowSec - 1000, // Issued 1000 seconds ago
-				exp: nowSec - 500,  // Expired 500 seconds ago
+				exp: nowSec - 500, // Expired 500 seconds ago
 				first_name: user.first_name,
 				last_name: user.last_name,
 				email_hash: user.email_hash,
-				pwd: 0
+				pwd: 0,
 			};
 
-			const expiredToken = await new SignJWT(payload)
-				.setProtectedHeader({ alg: 'HS256' })
-				.sign(new TextEncoder().encode(secret));
+			const expiredToken = await new SignJWT(payload).setProtectedHeader({ alg: 'HS256' }).sign(new TextEncoder().encode(secret));
 
 			const result = await tokenService.verifyAccessToken(expiredToken, secret);
 
@@ -151,7 +149,7 @@ describe('Token Service', () => {
 				first_name: 'John',
 				last_name: 'Doe',
 				email_hash: 'email-hash-123',
-				password_changed_at: new Date(Date.now() - 60000).toISOString() // Changed 1 minute ago
+				password_changed_at: new Date(Date.now() - 60000).toISOString(), // Changed 1 minute ago
 			};
 			const secret = 'test-secret';
 
@@ -165,12 +163,10 @@ describe('Token Service', () => {
 				first_name: user.first_name,
 				last_name: user.last_name,
 				email_hash: user.email_hash,
-				pwd: 0 // No password change at token creation
+				pwd: 0, // No password change at token creation
 			};
 
-			const token = await new SignJWT(payload)
-				.setProtectedHeader({ alg: 'HS256' })
-				.sign(new TextEncoder().encode(secret));
+			const token = await new SignJWT(payload).setProtectedHeader({ alg: 'HS256' }).sign(new TextEncoder().encode(secret));
 
 			// Update payload to reflect password change
 			payload.pwd = pwdChangedSec;
@@ -182,7 +178,7 @@ describe('Token Service', () => {
 			// We need to simulate the scenario where password changed after token was issued
 			const tokenWithPwd = await new SignJWT({
 				...payload,
-				pwd: pwdChangedSec
+				pwd: pwdChangedSec,
 			})
 				.setProtectedHeader({ alg: 'HS256' })
 				.sign(new TextEncoder().encode(secret));
@@ -218,4 +214,3 @@ describe('Token Service', () => {
 		});
 	});
 });
-

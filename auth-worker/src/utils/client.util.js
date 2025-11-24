@@ -3,4 +3,3 @@ export function getClientInfo(c) {
 	const ua = c.req.header('user-agent') || null;
 	return { ip, ua };
 }
-

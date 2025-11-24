@@ -3,7 +3,7 @@ export async function healthHandler(c) {
 		status: 'healthy',
 		service: 'products-worker',
 		timestamp: new Date().toISOString(),
-		bindings: {}
+		bindings: {},
 	};
 
 	// Check D1 Database
@@ -65,4 +65,3 @@ export async function healthHandler(c) {
 	const statusCode = checks.status === 'healthy' ? 200 : 503;
 	return c.json(checks, statusCode);
 }
-

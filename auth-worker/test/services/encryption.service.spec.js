@@ -151,4 +151,3 @@ describe('Encryption Service', () => {
 		});
 	});
 });
-

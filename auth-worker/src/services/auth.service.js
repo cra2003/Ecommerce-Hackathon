@@ -22,30 +22,46 @@ export async function registerUser(c) {
 		const encKey = c.env.AUTH_ENC_KEY || c.env.ENCRYPTION_KEY || '';
 		const email_cipher = await encryptData(emailNorm, encKey);
 		const phone_cipher = body.phone ? await encryptData(String(body.phone), encKey) : null;
-		const addresses_cipher = Array.isArray(body.addresses)
-			? await encryptData(JSON.stringify(body.addresses), encKey)
-			: null;
+		const addresses_cipher = Array.isArray(body.addresses) ? await encryptData(JSON.stringify(body.addresses), encKey) : null;
 		const password_hash = await bcrypt.hash(String(body.password), 10);
 		const user_id = crypto.randomUUID();
 		const { ip, ua } = getClientInfo(c);
 
 		await insertUser(c.env.DB, {
-			user_id, email_hash, email_cipher, first_name: body.first_name, last_name: body.last_name, password_hash,
-			phone_cipher, addresses_cipher, profile_image_url: body.profile_image_url, language: body.language, default_currency: body.default_currency,
-			is_member: body.is_member, status: 'active', disabled_reason: null, created_ip: ip, user_agent: ua
+			user_id,
+			email_hash,
+			email_cipher,
+			first_name: body.first_name,
+			last_name: body.last_name,
+			password_hash,
+			phone_cipher,
+			addresses_cipher,
+			profile_image_url: body.profile_image_url,
+			language: body.language,
+			default_currency: body.default_currency,
+			is_member: body.is_member,
+			status: 'active',
+			disabled_reason: null,
+			created_ip: ip,
+			user_agent: ua,
 		});
 
 		// issue tokens
 		const accessToken = await generateAccessToken(
 			{ user_id, first_name: body.first_name, last_name: body.last_name, email_hash, password_changed_at: null },
-			c.env.JWT_SECRET
+			c.env.JWT_SECRET,
 		);
 		const refreshToken = await generateRefreshToken();
 		const token_hash = await hashRefreshToken(refreshToken);
 		const token_id = crypto.randomUUID();
 		const expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 		await storeRefreshToken(c.env.DB, {
-			token_id, user_id, token_hash, user_agent: ua, ip_address: ip, expires_at
+			token_id,
+			user_id,
+			token_hash,
+			user_agent: ua,
+			ip_address: ip,
+			expires_at,
 		});
 		setRefreshTokenCookie(c, refreshToken);
 		await logEvent(c.env, 'register_success', { user_id });
@@ -107,7 +123,12 @@ export async function refreshToken(c) {
 		const { ip, ua } = getClientInfo(c);
 		const expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 		await storeRefreshToken(c.env.DB, {
-			token_id: crypto.randomUUID(), user_id: user.user_id, token_hash: newHash, user_agent: ua, ip_address: ip, expires_at
+			token_id: crypto.randomUUID(),
+			user_id: user.user_id,
+			token_hash: newHash,
+			user_agent: ua,
+			ip_address: ip,
+			expires_at,
 		});
 		setRefreshTokenCookie(c, newRt);
 		return c.json({ accessToken });
@@ -134,10 +155,10 @@ export async function logoutUser(c) {
 export async function getCurrentUser(c) {
 	const { user_id } = c.get('auth');
 	const minimal = c.req.query('minimal') === 'true' || c.req.query('fields') === 'username';
-	
+
 	const user = await findUserById(c.env.DB, user_id);
 	if (!user) return c.json({ error: 'Not found' }, 404);
-	
+
 	// Return minimal data (only username) if requested
 	if (minimal) {
 		return c.json({
@@ -145,17 +166,31 @@ export async function getCurrentUser(c) {
 				user_id: user.user_id,
 				first_name: user.first_name,
 				last_name: user.last_name,
-				username: `${user.first_name} ${user.last_name}`.trim()
-			}
+				username: `${user.first_name} ${user.last_name}`.trim(),
+			},
 		});
 	}
-	
+
 	// Return full profile data
 	const encKey = c.env.AUTH_ENC_KEY || c.env.ENCRYPTION_KEY || '';
-	let email = null, phone = null, addresses = [];
-	try { email = await decryptData(user.email_cipher, encKey); } catch { /* Ignore decryption errors */ }
-	try { phone = user.phone_cipher ? await decryptData(user.phone_cipher, encKey) : null; } catch { /* Ignore decryption errors */ }
-	try { addresses = user.addresses_cipher ? JSON.parse(await decryptData(user.addresses_cipher, encKey)) : []; } catch { /* Ignore decryption errors */ }
+	let email = null,
+		phone = null,
+		addresses = [];
+	try {
+		email = await decryptData(user.email_cipher, encKey);
+	} catch {
+		/* Ignore decryption errors */
+	}
+	try {
+		phone = user.phone_cipher ? await decryptData(user.phone_cipher, encKey) : null;
+	} catch {
+		/* Ignore decryption errors */
+	}
+	try {
+		addresses = user.addresses_cipher ? JSON.parse(await decryptData(user.addresses_cipher, encKey)) : [];
+	} catch {
+		/* Ignore decryption errors */
+	}
 	return c.json({
 		user: {
 			user_id: user.user_id,
@@ -170,8 +205,8 @@ export async function getCurrentUser(c) {
 			is_member: !!user.is_member,
 			status: user.status,
 			created_at: user.created_at,
-			updated_at: user.updated_at
-		}
+			updated_at: user.updated_at,
+		},
 	});
 }
 
@@ -219,7 +254,11 @@ export async function addAddress(c) {
 		const user = await findUserById(c.env.DB, user_id);
 		let list = [];
 		if (user.addresses_cipher) {
-			try { list = JSON.parse(await decryptData(user.addresses_cipher, encKey)); } catch { /* Ignore decryption errors */ }
+			try {
+				list = JSON.parse(await decryptData(user.addresses_cipher, encKey));
+			} catch {
+				/* Ignore decryption errors */
+			}
 		}
 		const address_id = crypto.randomUUID();
 		list.push({ id: address_id, ...addr });
@@ -241,11 +280,18 @@ export async function updateAddress(c) {
 		const user = await findUserById(c.env.DB, user_id);
 		let list = [];
 		if (user.addresses_cipher) {
-			try { list = JSON.parse(await decryptData(user.addresses_cipher, encKey)); } catch { /* Ignore decryption errors */ }
+			try {
+				list = JSON.parse(await decryptData(user.addresses_cipher, encKey));
+			} catch {
+				/* Ignore decryption errors */
+			}
 		}
 		let found = false;
 		list = list.map((a) => {
-			if (a.id === addressId) { found = true; return { ...a, ...update }; }
+			if (a.id === addressId) {
+				found = true;
+				return { ...a, ...update };
+			}
 			return a;
 		});
 		if (!found) return c.json({ error: 'Address not found' }, 404);
@@ -266,7 +312,11 @@ export async function deleteAddress(c) {
 		const user = await findUserById(c.env.DB, user_id);
 		let list = [];
 		if (user.addresses_cipher) {
-			try { list = JSON.parse(await decryptData(user.addresses_cipher, encKey)); } catch { /* Ignore decryption errors */ }
+			try {
+				list = JSON.parse(await decryptData(user.addresses_cipher, encKey));
+			} catch {
+				/* Ignore decryption errors */
+			}
 		}
 		const next = list.filter((a) => a.id !== addressId);
 		if (next.length === list.length) return c.json({ error: 'Address not found' }, 404);
@@ -278,4 +328,3 @@ export async function deleteAddress(c) {
 		return c.json({ error: 'Delete address failed' }, 500);
 	}
 }
-

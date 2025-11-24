@@ -5,4 +5,3 @@ export function registerPaymentRoutes(app) {
 	app.post('/payment/capture', capturePaymentHandler);
 	app.post('/payment/webhook', paymentWebhookHandler);
 }
-

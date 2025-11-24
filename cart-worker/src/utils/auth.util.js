@@ -22,7 +22,7 @@ export async function getUserOrGuest(request, env) {
 			if (userId) {
 				return {
 					type: 'user',
-					user_id: String(userId)
+					user_id: String(userId),
 				};
 			}
 		} catch (err) {
@@ -34,25 +34,25 @@ export async function getUserOrGuest(request, env) {
 	// Try to get guest session ID from header first (preferred for cross-domain)
 	// Header is needed because cookies don't cross subdomains (auth-worker vs cart-worker)
 	let guestSessionId = request.headers.get('X-Guest-Session-Id');
-	
+
 	// Clean up the header value (remove any whitespace)
 	if (guestSessionId) {
 		guestSessionId = guestSessionId.trim();
 	}
-	
+
 	// Fallback to cookie if header is not present
 	if (!guestSessionId) {
 		const cookies = parseCookies(request);
 		guestSessionId = cookies.guest_session_id;
 	}
-	
-	console.log('[auth-util] Guest session check:', { 
+
+	console.log('[auth-util] Guest session check:', {
 		hasHeader: !!request.headers.get('X-Guest-Session-Id'),
 		headerValue: request.headers.get('X-Guest-Session-Id') ? request.headers.get('X-Guest-Session-Id').substring(0, 12) + '...' : null,
 		headerLength: request.headers.get('X-Guest-Session-Id') ? request.headers.get('X-Guest-Session-Id').length : 0,
 		hasCookie: !!guestSessionId,
 		guestSessionId: guestSessionId ? guestSessionId.substring(0, 12) + '...' : null,
-		guestSessionIdLength: guestSessionId ? guestSessionId.length : 0
+		guestSessionIdLength: guestSessionId ? guestSessionId.length : 0,
 	});
 
 	if (guestSessionId) {
@@ -60,10 +60,9 @@ export async function getUserOrGuest(request, env) {
 		// For now, we'll trust the cookie/header and let the constraint in DB handle validation
 		return {
 			type: 'guest',
-			guest_session_id: guestSessionId
+			guest_session_id: guestSessionId,
 		};
 	}
 
 	return { type: null };
 }
-

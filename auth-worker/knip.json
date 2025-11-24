@@ -5,4 +5,3 @@
 	"ignore": ["**/*.spec.js", "test/**"],
 	"ignoreDependencies": ["wrangler", "@cloudflare/vitest-pool-workers"]
 }
-

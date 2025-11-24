@@ -15,7 +15,7 @@ export async function getPayPalAccessToken(env) {
 	const res = await fetch(`${base}/v1/oauth2/token`, {
 		method: 'POST',
 		headers: {
-			'Authorization': 'Basic ' + btoa(`${clientId}:${clientSecret}`),
+			Authorization: 'Basic ' + btoa(`${clientId}:${clientSecret}`),
 			'Content-Type': 'application/x-www-form-urlencoded',
 		},
 		body: 'grant_type=client_credentials',
@@ -29,4 +29,3 @@ export async function getPayPalAccessToken(env) {
 	const data = await res.json();
 	return data.access_token;
 }
-

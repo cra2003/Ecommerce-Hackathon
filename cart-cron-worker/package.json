@@ -1,16 +1,10 @@
 {
 	"name": "cart-cron-worker",
 	"version": "0.0.0",
-	"private": true,
+	"type": "module",
 	"scripts": {
-		"deploy": "wrangler deploy",
-		"dev": "wrangler dev",
-		"start": "wrangler dev",
-		"test": "vitest"
-	},
-	"devDependencies": {
-		"@cloudflare/vitest-pool-workers": "^0.8.19",
-		"vitest": "~3.2.0",
-		"wrangler": "^4.47.0"
+		"lint": "eslint .",
+		"format": "prettier --write .",
+		"lint:fix": "eslint . --fix"
 	}
 }

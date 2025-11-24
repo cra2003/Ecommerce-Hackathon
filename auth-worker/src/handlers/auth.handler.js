@@ -7,7 +7,7 @@ import {
 	updateProfile,
 	addAddress,
 	updateAddress,
-	deleteAddress
+	deleteAddress,
 } from '../services/auth.service.js';
 
 export async function registerHandler(c) {
@@ -45,4 +45,3 @@ export async function updateAddressHandler(c) {
 export async function deleteAddressHandler(c) {
 	return await deleteAddress(c);
 }
-

@@ -8,10 +8,10 @@ import { getUserOrGuest } from '../utils/auth.util.js';
 export default async function authOrGuestMiddleware(c, next) {
 	const authInfo = await getUserOrGuest(c.req.raw, c.env);
 
-	console.log('[auth-or-guest-middleware] Auth info:', { 
-		type: authInfo.type, 
+	console.log('[auth-or-guest-middleware] Auth info:', {
+		type: authInfo.type,
 		user_id: authInfo.user_id || null,
-		guest_session_id: authInfo.guest_session_id ? authInfo.guest_session_id.substring(0, 8) + '...' : null
+		guest_session_id: authInfo.guest_session_id ? authInfo.guest_session_id.substring(0, 8) + '...' : null,
 	});
 
 	if (authInfo.type === 'user') {
@@ -25,10 +25,12 @@ export default async function authOrGuestMiddleware(c, next) {
 		await next();
 	} else {
 		console.log('[auth-or-guest-middleware] No auth or guest - returning 401');
-		return c.json({ 
-			success: false, 
-			error: 'Authentication required. Please log in or continue as guest.' 
-		}, 401);
+		return c.json(
+			{
+				success: false,
+				error: 'Authentication required. Please log in or continue as guest.',
+			},
+			401,
+		);
 	}
 }
-

@@ -22,7 +22,7 @@ export async function getUserOrGuest(request, env) {
 				return {
 					type: 'user',
 					id: payload.sub,
-					user_id: payload.sub
+					user_id: payload.sub,
 				};
 			}
 		} catch (err) {
@@ -39,14 +39,16 @@ export async function getUserOrGuest(request, env) {
 		// Verify guest session exists and is not expired
 		try {
 			const session = await env.DB.prepare(
-				'SELECT guest_session_id, expires_at FROM guest_sessions WHERE guest_session_id = ? AND expires_at > datetime("now")'
-			).bind(guestSessionId).first();
+				'SELECT guest_session_id, expires_at FROM guest_sessions WHERE guest_session_id = ? AND expires_at > datetime("now")',
+			)
+				.bind(guestSessionId)
+				.first();
 
 			if (session) {
 				return {
 					type: 'guest',
 					id: guestSessionId,
-					guest_session_id: guestSessionId
+					guest_session_id: guestSessionId,
 				};
 			} else {
 				console.log('[auth] Guest session expired or not found');
@@ -60,4 +62,3 @@ export async function getUserOrGuest(request, env) {
 
 	return { type: null, id: null };
 }
-

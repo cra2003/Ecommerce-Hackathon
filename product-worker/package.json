@@ -1,23 +1,11 @@
 {
 	"name": "db-worker",
 	"version": "0.0.0",
-	"private": true,
+	"type": "module",
 	"scripts": {
-		"deploy": "wrangler deploy",
-		"dev": "wrangler dev",
-		"start": "wrangler dev",
-		"test": "mocha test/**/*.spec.js",
-		"test:unit": "mocha test/**/*.spec.js",
-		"migrate:remote": "wrangler d1 migrations apply ecommerce-db-1 --remote",
-		"migrate:local": "wrangler d1 migrations apply ecommerce-db-1 --local"
-	},
-	"devDependencies": {
-		"@cloudflare/vitest-pool-workers": "^0.8.19",
-		"chai": "^4.3.10",
-		"mocha": "^10.2.0",
-		"sinon": "^17.0.1",
-		"vitest": "~3.2.0",
-		"wrangler": "^4.46.0"
+		"lint": "eslint .",
+		"format": "prettier --write .",
+		"lint:fix": "eslint . --fix"
 	},
 	"dependencies": {
 		"@microlabs/otel-cf-workers": "^1.0.0-rc.52",

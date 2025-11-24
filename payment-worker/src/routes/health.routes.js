@@ -4,4 +4,3 @@ export function registerHealthRoutes(app) {
 	app.get('/', rootHandler);
 	app.get('/health', healthHandler);
 }
-

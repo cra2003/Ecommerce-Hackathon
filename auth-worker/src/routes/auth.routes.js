@@ -7,7 +7,7 @@ import {
 	updateProfileHandler,
 	addAddressHandler,
 	updateAddressHandler,
-	deleteAddressHandler
+	deleteAddressHandler,
 } from '../handlers/auth.handler.js';
 import authMiddleware from '../middleware/auth.middleware.js';
 
@@ -24,4 +24,3 @@ export function registerAuthRoutes(app) {
 	app.put(`${base}/addresses/:id`, authMiddleware, updateAddressHandler);
 	app.delete(`${base}/addresses/:id`, authMiddleware, deleteAddressHandler);
 }
-

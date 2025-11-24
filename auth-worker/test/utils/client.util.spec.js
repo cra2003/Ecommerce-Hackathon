@@ -106,4 +106,3 @@ describe('Client Utils', () => {
 		});
 	});
 });
-
