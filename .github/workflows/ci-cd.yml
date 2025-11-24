@@ -8,7 +8,7 @@ on:
 
 jobs:
   # -------------------------------
-  # 0) Detect Changed Workers (runs in parallel with CI)
+  # 0) Detect Changd Workers (runs in parallel with CI)
   # -------------------------------
   detect-changes:
     name: Detect Changed Workers

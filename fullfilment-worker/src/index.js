@@ -7,6 +7,7 @@ import { Hono } from 'hono';
 import { instrument } from '@microlabs/otel-cf-workers';
 import corsMiddleware from './config/cors.config.js';
 import loggingMiddleware from './middleware/logging.middleware.js';
+import tracingMiddleware from './middleware/tracing.middleware.js';
 import { registerStockRoutes } from './routes/stock.routes.js';
 import { registerFulfillmentRoutes } from './routes/fulfillment.routes.js';
 import { registerHealthRoutes } from './routes/health.routes.js';
@@ -15,6 +16,9 @@ const app = new Hono();
 
 // CORS configuration
 app.use('/*', corsMiddleware);
+
+// Add cf-ray to spans
+app.use('*', tracingMiddleware);
 
 // Request-level structured logging
 app.use('*', loggingMiddleware);

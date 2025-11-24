@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { instrument } from '@microlabs/otel-cf-workers';
 import loggingMiddleware from './middleware/logging.middleware.js';
+import tracingMiddleware from './middleware/tracing.middleware.js';
 import { registerProductRoutes } from './routes/products.routes.js';
 import { registerHealthRoutes } from './routes/health.routes.js';
 
@@ -19,6 +20,7 @@ app.use(
 	}),
 );
 
+app.use('*', tracingMiddleware); // Add cf-ray to spans
 app.use('*', loggingMiddleware);
 
 registerProductRoutes(app);

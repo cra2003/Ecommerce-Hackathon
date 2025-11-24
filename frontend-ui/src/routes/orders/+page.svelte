@@ -1,24 +1,15 @@
 <script>
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { accessToken, isAuthed } from '$lib/stores/auth.js';
-	import { getOrders, cancelOrder } from '$lib/utils/api.js';
+	import { getOrders } from '$lib/utils/api.js';
 	import { saveRedirectBeforeLogin } from '$lib/utils/login-redirect.js';
-	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-	import Toast from '$lib/components/Toast.svelte';
 	
 	let orders = $state([]);
 	let isLoading = $state(true);
 	let error = $state('');
 	let token = $state('');
 	let userAuthed = $state(false);
-	let cancellingOrderId = $state(null);
-	let showCancelConfirm = $state(false);
-	let pendingCancelOrderId = $state(null);
-	let toastOpen = $state(false);
-	let toastMessage = $state('');
-	let toastType = $state('info');
 	
 	// Subscribe to access token and auth state
 	$effect(() => {
@@ -110,46 +101,6 @@
 		}
 	}
 	
-	function handleCancelOrderClick(orderId) {
-		pendingCancelOrderId = orderId;
-		showCancelConfirm = true;
-	}
-	
-	async function handleCancelConfirm() {
-		if (!pendingCancelOrderId || !token) {
-			showCancelConfirm = false;
-			pendingCancelOrderId = null;
-			return;
-		}
-		
-		const orderId = pendingCancelOrderId;
-		cancellingOrderId = orderId;
-		error = '';
-		showCancelConfirm = false;
-		
-		try {
-			await cancelOrder(token, orderId);
-			// Remove order from local state
-			orders = orders.filter(o => o.order_id !== orderId);
-			// Show success toast
-			toastMessage = 'Order cancelled successfully';
-			toastType = 'success';
-			toastOpen = true;
-		} catch (err) {
-			error = err.message || 'Failed to cancel order';
-			toastMessage = error;
-			toastType = 'error';
-			toastOpen = true;
-		} finally {
-			cancellingOrderId = null;
-			pendingCancelOrderId = null;
-		}
-	}
-	
-	function handleCancelDialogCancel() {
-		showCancelConfirm = false;
-		pendingCancelOrderId = null;
-	}
 </script>
 
 <div class="mx-auto max-w-6xl">
@@ -254,39 +205,9 @@
 							</p>
 						</div>
 					{/if}
-					
-					<div class="mt-4 pt-4 border-t border-white/10">
-						<button
-							class="rounded-full bg-red-500/20 px-4 py-2 text-sm font-medium text-red-300 hover:bg-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
-							on:click={() => handleCancelOrderClick(order.order_id)}
-							disabled={cancellingOrderId === order.order_id}
-						>
-							{cancellingOrderId === order.order_id ? 'Cancelling...' : 'Cancel Order'}
-						</button>
-					</div>
 				</div>
 			{/each}
 		</div>
 	{/if}
-	
-	<!-- Cancel Order Confirmation Dialog -->
-	<ConfirmDialog
-		bind:open={showCancelConfirm}
-		title="Cancel Order"
-		message="Are you sure you want to cancel this order? This action cannot be undone."
-		confirmText="Cancel Order"
-		cancelText="Keep Order"
-		confirmColor="danger"
-		onConfirm={handleCancelConfirm}
-		onCancel={handleCancelDialogCancel}
-	/>
-	
-	<!-- Toast Notification -->
-	<Toast
-		bind:open={toastOpen}
-		message={toastMessage}
-		type={toastType}
-		duration={4000}
-	/>
 </div>
 
