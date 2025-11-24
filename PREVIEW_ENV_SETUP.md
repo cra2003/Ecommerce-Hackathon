@@ -11,10 +11,12 @@ Preview environments are separate deployments that allow you to test changes bef
 ### 🔐 auth-worker
 
 **Required Secrets:**
+
 - `JWT_SECRET` - Secret key for signing/verifying JWT tokens
 - `AUTH_ENC_KEY` - Encryption key for sensitive data (emails, phones, addresses)
 
 **Optional:**
+
 - `OTEL_INGEST_API_KEY` - OpenTelemetry API key (for tracing)
 - `OTEL_EXPORTER_OTLP_ENDPOINT` - OpenTelemetry endpoint (optional)
 - `OTEL_DATASET` - OpenTelemetry dataset name (optional)
@@ -22,9 +24,11 @@ Preview environments are separate deployments that allow you to test changes bef
 ### 🛒 cart-worker
 
 **Required Secrets:**
+
 - `JWT_SECRET` - For verifying JWT tokens from auth-worker
 
 **Optional:**
+
 - `OTEL_INGEST_API_KEY` - OpenTelemetry API key
 - `OTEL_EXPORTER_OTLP_ENDPOINT` - OpenTelemetry endpoint
 - `OTEL_DATASET` - OpenTelemetry dataset name
@@ -32,9 +36,11 @@ Preview environments are separate deployments that allow you to test changes bef
 ### 📦 order-worker
 
 **Required Secrets:**
+
 - `JWT_SECRET` - For verifying JWT tokens from auth-worker
 
 **Optional:**
+
 - `OTEL_INGEST_API_KEY` - OpenTelemetry API key
 - `OTEL_EXPORTER_OTLP_ENDPOINT` - OpenTelemetry endpoint
 - `OTEL_DATASET` - OpenTelemetry dataset name
@@ -42,10 +48,12 @@ Preview environments are separate deployments that allow you to test changes bef
 ### 💳 payment-worker
 
 **Required Secrets:**
+
 - `PAYPAL_CLIENT_ID` - PayPal Sandbox client ID
 - `PAYPAL_CLIENT_SECRET` - PayPal Sandbox client secret
 
 **Optional:**
+
 - `PAYPAL_API_BASE` - PayPal API base URL (defaults to sandbox)
 - `OTEL_INGEST_API_KEY` - OpenTelemetry API key
 - `OTEL_EXPORTER_OTLP_ENDPOINT` - OpenTelemetry endpoint
@@ -54,6 +62,7 @@ Preview environments are separate deployments that allow you to test changes bef
 ### 📊 Other Workers (product, price, fulfillment)
 
 **Optional:**
+
 - `OTEL_INGEST_API_KEY` - OpenTelemetry API key
 - `OTEL_EXPORTER_OTLP_ENDPOINT` - OpenTelemetry endpoint
 - `OTEL_DATASET` - OpenTelemetry dataset name
@@ -80,6 +89,7 @@ wrangler secret put OTEL_INGEST_API_KEY --env preview
 ```
 
 **When prompted, enter the secret value:**
+
 - For `JWT_SECRET`: Use a strong random string (e.g., generate with `openssl rand -hex 32`)
 - For `AUTH_ENC_KEY`: Use a 32-byte key (e.g., `openssl rand -hex 32`)
 - For `OTEL_INGEST_API_KEY`: Your Honeycomb API key
@@ -191,7 +201,7 @@ cd ..
 # payment-worker
 echo "Setting secrets for payment-worker..."
 cd payment-worker
-echo "Enter PayPal Client ID:" 
+echo "Enter PayPal Client ID:"
 read PAYPAL_CLIENT_ID
 echo "Enter PayPal Client Secret:"
 read PAYPAL_CLIENT_SECRET
@@ -230,13 +240,14 @@ curl https://auth-worker-preview.aadhi18082003.workers.dev/health
 ```
 
 The health endpoint should show:
+
 ```json
 {
-  "status": "ok",
-  "secrets": {
-    "JWT_SECRET": true,
-    "AUTH_ENC_KEY": true
-  }
+	"status": "ok",
+	"secrets": {
+		"JWT_SECRET": true,
+		"AUTH_ENC_KEY": true
+	}
 }
 ```
 
@@ -253,6 +264,7 @@ The health endpoint should show:
 ### 2. **JWT_SECRET Must Match Across Workers**
 
 For preview environment:
+
 - `auth-worker` signs tokens with `JWT_SECRET`
 - `cart-worker` verifies tokens with `JWT_SECRET`
 - `order-worker` verifies tokens with `JWT_SECRET`
@@ -319,6 +331,7 @@ done
 If you see `JWT_SECRET is not defined`:
 
 1. Verify secret is set:
+
    ```bash
    wrangler secret list --env preview
    ```
@@ -333,6 +346,7 @@ If you see `JWT_SECRET is not defined`:
 If tokens from `auth-worker` are rejected by `cart-worker` or `order-worker`:
 
 1. **Check JWT_SECRET matches:**
+
    ```bash
    # All three workers must have the same JWT_SECRET
    cd auth-worker && wrangler secret list --env preview | grep JWT_SECRET
@@ -348,6 +362,7 @@ If tokens from `auth-worker` are rejected by `cart-worker` or `order-worker`:
 ### PayPal Payment Fails in Preview
 
 1. Verify PayPal Sandbox credentials:
+
    ```bash
    cd payment-worker
    wrangler secret list --env preview | grep PAYPAL
@@ -368,4 +383,3 @@ If tokens from `auth-worker` are rejected by `cart-worker` or `order-worker`:
 - OpenTelemetry secrets are optional but recommended
 
 Use the Wrangler CLI commands above to set secrets for each worker's preview environment.
-

@@ -6,7 +6,7 @@ export async function load({ fetch, params }) {
 	const id = params.slug;
 
 	// Allow caching for product detail page (backend has KV cache)
-	const res = await fetch(`${PRODUCTS_API.replace(/\/+$/,'')}/products/${id}`);
+	const res = await fetch(`${PRODUCTS_API.replace(/\/+$/, '')}/products/${id}`);
 	if (!res.ok) {
 		return { product: null };
 	}
@@ -53,19 +53,19 @@ export async function load({ fetch, params }) {
 	let stockBySize = {};
 	let inStock = true;
 	try {
-		const stockRes = await fetch(
-			`${FULFILL_API.replace(/\/+$/,'')}/api/stock/product/${encodeURIComponent(productId)}`,
-			{ cache: 'no-store' }
-		);
+		const stockRes = await fetch(`${FULFILL_API.replace(/\/+$/, '')}/api/stock/product/${encodeURIComponent(productId)}`, {
+			cache: 'no-store',
+		});
 		if (stockRes.ok) {
 			const stockData = await stockRes.json();
 			if (stockData?.success === false) {
 				inStock = false;
 			} else {
 				stockBySize = stockData.sizes || {};
-				const total = typeof stockData.total_stock === 'number'
-					? stockData.total_stock
-					: Object.values(stockBySize).reduce((s, v) => s + Number(v || 0), 0);
+				const total =
+					typeof stockData.total_stock === 'number'
+						? stockData.total_stock
+						: Object.values(stockBySize).reduce((s, v) => s + Number(v || 0), 0);
 				inStock = total > 0;
 			}
 		}
@@ -82,13 +82,13 @@ export async function load({ fetch, params }) {
 	try {
 		if (row.sku) {
 			const priceRes = await fetch(
-				`${PRICE_API.replace(/\/+$/,'')}/api/price/${encodeURIComponent(row.sku)}?product_id=${encodeURIComponent(productId)}`
+				`${PRICE_API.replace(/\/+$/, '')}/api/price/${encodeURIComponent(row.sku)}?product_id=${encodeURIComponent(productId)}`
 			);
-				if (priceRes.ok) {
-					const priceData = await priceRes.json();
-					if (priceData?.success) {
-						price = Number(priceData.price ?? 0) || 0;
-						basePrice = Number(priceData.base_price ?? price) || price;
+			if (priceRes.ok) {
+				const priceData = await priceRes.json();
+				if (priceData?.success) {
+					price = Number(priceData.price ?? 0) || 0;
+					basePrice = Number(priceData.base_price ?? price) || price;
 					isOnSale = !!priceData.is_on_sale;
 					if (priceData.discount_percentage != null) {
 						discountPercentage = Number(priceData.discount_percentage);
@@ -132,15 +132,14 @@ export async function load({ fetch, params }) {
 			toe_style: row.toe_style ?? '',
 			heel_type: row.heel_type ?? '',
 			heel_height_cm: row.heel_height_cm ?? null,
-			weight_grams: row.weight_grams ?? null
+			weight_grams: row.weight_grams ?? null,
 		},
 		brand: row.brand ?? '',
 		target_audience: row.target_audience ?? '',
 		flexibility: row.flexibility ?? '',
 		cushioning_level: row.cushioning_level ?? '',
-		water_resistance: row.water_resistance ?? ''
+		water_resistance: row.water_resistance ?? '',
 	};
 
 	return { product };
 }
-

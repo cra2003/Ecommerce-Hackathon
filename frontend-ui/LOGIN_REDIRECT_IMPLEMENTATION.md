@@ -1,36 +1,45 @@
 # Cookie-Based Login Redirect System Implementation
 
 ## Overview
+
 This implementation uses a cookie (`login_redirect_url`) to remember where a user was trying to go before being redirected to login, then redirects them back after successful authentication.
 
 ## Files Created/Modified
 
 ### 1. Core Utility: `src/lib/utils/login-redirect.js`
+
 Contains all cookie management functions:
+
 - `saveRedirectBeforeLogin(url)` - Saves current URL to cookie (expires in 10 minutes)
 - `getRedirectFromCookie()` - Reads redirect URL from cookie
 - `deleteRedirectCookie()` - Deletes the redirect cookie
 - `redirectToLogin(url)` - Saves URL and redirects to login
 
 ### 2. Login Page: `src/routes/login/+page.svelte`
+
 Updated to:
+
 - Read redirect URL from cookie on successful login
 - Delete cookie after reading
 - Redirect to saved URL (or "/" if cookie missing/empty)
 
 ### 3. Product Detail Page: `src/routes/products/[slug]/+page.svelte`
+
 - "Add to Bag" button now saves redirect URL when user is not logged in
 - Redirects to `/auth/login`
 
 ### 4. Cart Page: `src/routes/cart/+page.svelte`
+
 - Automatically saves redirect URL when page loads without auth
 - "Proceed to Checkout" saves redirect URL before redirecting
 - "Log In" button saves redirect URL on click
 
 ### 5. Header/Navbar: `src/lib/components/Header.svelte`
+
 - "Login" link saves current page URL before redirecting
 
 ### 6. Orders Page: `src/routes/orders/+page.svelte`
+
 - "Log In" button saves redirect URL on click
 
 ## Cookie Specifications
@@ -45,6 +54,7 @@ Updated to:
 ## Usage Examples
 
 ### Import and use anywhere:
+
 ```javascript
 import { saveRedirectBeforeLogin, redirectToLogin } from '$lib/utils/login-redirect.js';
 
@@ -61,10 +71,11 @@ redirectToLogin('/products?category=sneakers');
 ```
 
 ### In any component:
+
 ```svelte
 <script>
   import { saveRedirectBeforeLogin } from '$lib/utils/login-redirect.js';
-  
+
   function handleProtectedAction() {
     if (!isLoggedIn) {
       saveRedirectBeforeLogin(); // Saves current page
@@ -93,4 +104,3 @@ redirectToLogin('/products?category=sneakers');
 - [ ] Cookie expires after 10 minutes (redirects to "/" if expired)
 - [ ] Cookie is deleted after successful login
 - [ ] Works after page refresh
-

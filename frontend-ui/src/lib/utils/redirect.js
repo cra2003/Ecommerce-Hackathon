@@ -7,10 +7,10 @@ export function getLoginUrl(redirectTo = null) {
 	if (typeof window === 'undefined') {
 		return '/login';
 	}
-	
+
 	// If no redirect URL provided, use current page
 	const targetUrl = redirectTo || window.location.pathname + window.location.search;
-	
+
 	// Encode the redirect URL
 	const encoded = encodeURIComponent(targetUrl);
 	return `/login?redirect=${encoded}`;
@@ -26,7 +26,7 @@ export function getRedirectUrl(searchParams) {
 	if (!redirect) {
 		return null;
 	}
-	
+
 	try {
 		// Decode the redirect URL
 		return decodeURIComponent(redirect);
@@ -35,4 +35,3 @@ export function getRedirectUrl(searchParams) {
 		return null;
 	}
 }
-

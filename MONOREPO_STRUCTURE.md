@@ -5,6 +5,7 @@ This document contains the complete file structure and contents for the Hackatho
 ## Root Level Files
 
 ### `package.json` (Root)
+
 ```json
 {
 	"name": "hackathon-1",
@@ -48,6 +49,7 @@ This document contains the complete file structure and contents for the Hackatho
 ```
 
 ### `.eslintrc.json`
+
 ```json
 {
 	"root": true,
@@ -75,6 +77,7 @@ This document contains the complete file structure and contents for the Hackatho
 ```
 
 ### `.prettierrc`
+
 ```json
 {
 	"printWidth": 140,
@@ -91,6 +94,7 @@ This document contains the complete file structure and contents for the Hackatho
 ```
 
 ### `.gitignore`
+
 ```
 # OS files
 .DS_Store
@@ -138,6 +142,7 @@ coverage/
 ```
 
 ### `.husky/pre-commit`
+
 ```bash
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
@@ -178,6 +183,7 @@ exit 0
 Each worker should follow this structure. Here's an example for `cart-worker`:
 
 ### `cart-worker/package.json`
+
 ```json
 {
 	"name": "cart-worker",
@@ -217,6 +223,7 @@ Each worker should follow this structure. Here's an example for `cart-worker`:
 ```
 
 ### `cart-worker/wrangler.toml` (Template)
+
 ```toml
 name = "cart-worker"
 main = "src/index.js"
@@ -273,6 +280,7 @@ bucket_name = "cart-worker-logs"
 ```
 
 ### `cart-worker/src/index.js` (Template)
+
 ```javascript
 /**
  * Cart Worker - Cloudflare Worker
@@ -285,11 +293,11 @@ import { Hono } from 'hono';
 const app = new Hono();
 
 // Health check endpoint
-app.get('/health', (c) => {
+app.get('/health', c => {
 	return c.json({
 		status: 'ok',
 		service: 'cart-worker',
-		timestamp: new Date().toISOString()
+		timestamp: new Date().toISOString(),
 	});
 });
 
@@ -303,6 +311,7 @@ export default app;
 ```
 
 ### `cart-worker/.eslintrc.json` (Optional - inherits from root)
+
 ```json
 {
 	"extends": ["../../.eslintrc.json"]
@@ -380,26 +389,31 @@ Hackathon-1/
 ## Setup Instructions
 
 1. **Install root dependencies:**
+
    ```bash
    npm install
    ```
 
 2. **Update worker package.json files (adds scripts automatically):**
+
    ```bash
    node scripts/update-worker-scripts.js
    ```
 
 3. **Install worker dependencies:**
+
    ```bash
    npm install -ws
    ```
 
 4. **Initialize Husky:**
+
    ```bash
    npm run prepare
    ```
 
 5. **Run checks manually:**
+
    ```bash
    npm run lint -ws
    npm run format:check -ws
@@ -414,6 +428,7 @@ Hackathon-1/
 ## What the Pre-commit Hook Does
 
 On every `git commit`, it automatically runs:
+
 - `npm run lint -ws` (checks all workers for lint errors)
 - `npm run format:check -ws` (checks formatting across all workers)
 
@@ -431,6 +446,7 @@ If any check fails, the commit is blocked.
 ## Worker Requirements
 
 Each worker needs:
+
 - `package.json` with `lint`, `lint:fix`, `format`, `format:check`, `format:fix` scripts
 - `wrangler.toml` with `main = "src/index.js"`
 - `src/index.js` (JavaScript entry point)

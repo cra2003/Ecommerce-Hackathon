@@ -112,7 +112,7 @@ export async function logout() {
 export async function loadProfile(tokenOverride = null, minimal = false) {
 	let tokenValue = tokenOverride;
 	if (!tokenValue) {
-		const unsub = accessToken.subscribe((v) => (tokenValue = v));
+		const unsub = accessToken.subscribe(v => (tokenValue = v));
 		unsub();
 	}
 	if (!tokenValue) {
@@ -125,7 +125,9 @@ export async function loadProfile(tokenOverride = null, minimal = false) {
 			if (minimal) {
 				// For minimal mode, only update username fields, keep existing profile data
 				let currentProfile = null;
-				const unsub = profile.subscribe((p) => { currentProfile = p; });
+				const unsub = profile.subscribe(p => {
+					currentProfile = p;
+				});
 				unsub();
 				// Merge minimal user data with existing profile if available
 				profile.set(currentProfile ? { ...currentProfile, ...me.user } : me.user);
@@ -141,5 +143,3 @@ export async function loadProfile(tokenOverride = null, minimal = false) {
 	}
 	return null;
 }
-
-

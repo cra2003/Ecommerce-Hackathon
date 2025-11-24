@@ -94,6 +94,7 @@ Hackathon-1/
 ```
 
 **Key Points:**
+
 - ✅ `"private": true` - Prevents accidental publishing
 - ✅ All devDependencies at root only (no duplication)
 - ✅ `wrangler` included for deployment
@@ -110,12 +111,12 @@ module.exports = {
 		browser: false,
 		es2021: true,
 		node: true,
-		worker: true
+		worker: true,
 	},
 	extends: ['eslint:recommended', 'plugin:prettier/recommended'],
 	parserOptions: {
 		ecmaVersion: 'latest',
-		sourceType: 'module'
+		sourceType: 'module',
 	},
 	plugins: ['prettier'],
 	rules: {
@@ -123,26 +124,18 @@ module.exports = {
 			'error',
 			{
 				argsIgnorePattern: '^_',
-				varsIgnorePattern: '^_'
-			}
+				varsIgnorePattern: '^_',
+			},
 		],
 		'no-console': 'off',
-		'prettier/prettier': 'error'
+		'prettier/prettier': 'error',
 	},
-	ignorePatterns: [
-		'node_modules/',
-		'dist/',
-		'.wrangler/',
-		'build/',
-		'*.config.js',
-		'*.config.cjs',
-		'migrations/',
-		'**/*.spec.js'
-	]
+	ignorePatterns: ['node_modules/', 'dist/', '.wrangler/', 'build/', '*.config.js', '*.config.cjs', 'migrations/', '**/*.spec.js'],
 };
 ```
 
 **Key Points:**
+
 - ✅ Shared config for all workers
 - ✅ Integrates Prettier with ESLint
 - ✅ Allows unused vars prefixed with `_`
@@ -168,6 +161,7 @@ module.exports = {
 ```
 
 **Key Points:**
+
 - ✅ Consistent formatting across all workers
 - ✅ Uses tabs for indentation
 - ✅ Single quotes
@@ -260,6 +254,7 @@ exit 0
 ```
 
 **Key Points:**
+
 - ✅ Runs `npm run lint` (which runs across all workspaces)
 - ✅ Runs `npm run format` (which formats all workspaces)
 - ✅ Blocks commit if any check fails
@@ -293,12 +288,14 @@ exit 0
 ```
 
 **Key Points:**
+
 - ✅ Minimal structure - only name, version, type, scripts
 - ✅ **No devDependencies** - inherited from root
 - ✅ Only `lint` and `format` scripts
 - ✅ Runtime dependencies only (hono, jose, etc.)
 
 **All workers follow the same pattern:**
+
 - `cart-worker/package.json`
 - `cart-cron-worker/package.json`
 - `order-worker/package.json`
@@ -402,6 +399,7 @@ bucket_name = "cart-worker-logs"
 ```
 
 **Key Points:**
+
 - ✅ `main = "src/index.js"` (JavaScript entry point)
 - ✅ `compatibility_flags = ["nodejs_compat"]` for Node.js APIs
 - ✅ Preview environment configuration
@@ -425,11 +423,11 @@ import { Hono } from 'hono';
 const app = new Hono();
 
 // Health check endpoint
-app.get('/health', (c) => {
+app.get('/health', c => {
 	return c.json({
 		status: 'ok',
 		service: 'auth-worker',
-		timestamp: new Date().toISOString()
+		timestamp: new Date().toISOString(),
 	});
 });
 
@@ -456,16 +454,16 @@ import { Hono } from 'hono';
 const app = new Hono();
 
 // Health check endpoint
-app.get('/health', (c) => {
+app.get('/health', c => {
 	return c.json({
 		status: 'ok',
 		service: 'cart-worker',
-		timestamp: new Date().toISOString()
+		timestamp: new Date().toISOString(),
 	});
 });
 
 // Example route using service bindings
-app.get('/cart', async (c) => {
+app.get('/cart', async c => {
 	// Access bindings from c.env
 	const db = c.env.DB;
 	const cache = c.env.CACHE;
@@ -480,6 +478,7 @@ export default app;
 ```
 
 **Key Points:**
+
 - ✅ ES6 modules (`import`/`export`)
 - ✅ Hono framework for routing
 - ✅ Health check endpoint
@@ -506,6 +505,7 @@ node scripts/setup-workers.js
 ```
 
 This will:
+
 - Create minimal `package.json` files with only `lint` and `format` scripts
 - Preserve existing runtime dependencies
 - Remove all devDependencies (inherited from root)
@@ -541,31 +541,37 @@ npm run format
 ## ✅ Best Practices Implemented
 
 ### 1. **No Duplicated Dependencies**
+
 - All devDependencies (eslint, prettier, wrangler) are at root only
 - Workers inherit these via npm workspaces
 - Faster installs, smaller node_modules
 
 ### 2. **Shared Configuration**
+
 - Single `.eslintrc.cjs` for all workers
 - Single `.prettierrc` for consistent formatting
 - No duplicated config files
 
 ### 3. **Simple Scripts**
+
 - Root: `lint` and `format` only
 - Workers: `lint` and `format` only
 - No complexity, easy to understand
 
 ### 4. **Clean Pre-commit Hook**
+
 - Runs `npm run lint` (which delegates to all workspaces)
 - Runs `npm run format` (which formats all workspaces)
 - Clear error messages
 
 ### 5. **Minimal Worker package.json**
+
 - Only essential fields: name, version, type, scripts
 - Runtime dependencies only
 - No devDependencies
 
 ### 6. **Fast CI/CD**
+
 - Single install command: `npm install`
 - Single lint command: `npm run lint`
 - Single format command: `npm run format`
@@ -603,12 +609,12 @@ const WORKERS = [
 	'payment-worker',
 	'fullfilment-worker',
 	'price-worker',
-	'product-worker'
+	'product-worker',
 ];
 
 for (const worker of WORKERS) {
 	const packageJsonPath = join(process.cwd(), worker, 'package.json');
-	
+
 	if (!existsSync(packageJsonPath)) {
 		console.log(`⚠️  ${worker}/package.json not found, skipping`);
 		continue;
@@ -616,7 +622,7 @@ for (const worker of WORKERS) {
 
 	try {
 		const existingPkg = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
-		
+
 		// Create minimal package.json
 		const minimalPkg = {
 			name: existingPkg.name || worker,
@@ -624,8 +630,8 @@ for (const worker of WORKERS) {
 			type: 'module',
 			scripts: {
 				lint: 'eslint .',
-				format: 'prettier --write .'
-			}
+				format: 'prettier --write .',
+			},
 		};
 
 		// Preserve dependencies if they exist (runtime deps, not devDeps)
@@ -657,7 +663,6 @@ This monorepo structure follows modern best practices:
 ✅ **Fast installs** with dependency hoisting  
 ✅ **Clean CI/CD** with simple scripts  
 ✅ **Pre-commit hooks** for code quality  
-✅ **No duplication** of configs or dependencies  
+✅ **No duplication** of configs or dependencies
 
 Perfect for JavaScript Cloudflare Workers! 🚀
-
