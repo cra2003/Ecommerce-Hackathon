@@ -32,15 +32,48 @@ jobs:
             CHANGED_FILES=$(git diff --name-only $BASE_SHA $HEAD_SHA)
           else
             # For push events, compare with the previous commit in the same branch
-            # Use HEAD~1 to ensure we compare against previous commit in current branch, not base branch
+            # The issue: HEAD~1 might point to main if feature branch was created from main
+            # Solution: Find the previous commit that's actually in the feature branch
+            
+            CURRENT_BRANCH="${{ github.ref_name }}"
+            echo "Current branch: $CURRENT_BRANCH"
+            echo "Current SHA (HEAD): ${{ github.sha }}"
+            
+            # Fetch main to compare against it
+            git fetch origin main:main 2>/dev/null || true
+            
+            # Find the merge-base with main (where feature branch diverged from main)
+            MERGE_BASE=""
+            if git rev-parse --verify main >/dev/null 2>&1; then
+              MERGE_BASE=$(git merge-base main HEAD 2>/dev/null || echo "")
+              echo "Merge-base with main: $MERGE_BASE"
+            fi
+            
+            # Try to find the previous commit in the feature branch (not on main)
+            PREV_COMMIT=""
+            
+            # If HEAD~1 exists and is different from merge-base, use it
             if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
-              # Compare with previous commit in current branch
-              CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
-            elif [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ] && [ -n "${{ github.event.before }}" ]; then
-              # Fallback: use github.event.before if HEAD~1 doesn't exist
-              CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
+              HEAD_MINUS_1=$(git rev-parse HEAD~1)
+              echo "HEAD~1: $HEAD_MINUS_1"
+              
+              # If HEAD~1 is not the merge-base (meaning it's in the feature branch), use it
+              if [ -z "$MERGE_BASE" ] || [ "$HEAD_MINUS_1" != "$MERGE_BASE" ]; then
+                PREV_COMMIT="HEAD~1"
+                echo "Using HEAD~1 as previous commit (it's in feature branch)"
+              else
+                echo "HEAD~1 is on main, cannot use it"
+              fi
+            fi
+            
+            # If we found a previous commit, use it; otherwise show all files in current commit
+            if [ -n "$PREV_COMMIT" ]; then
+              PREV_SHA=$(git rev-parse $PREV_COMMIT)
+              echo "Comparing: $PREV_COMMIT ($PREV_SHA)..HEAD (${{ github.sha }})"
+              CHANGED_FILES=$(git diff --name-only $PREV_COMMIT HEAD)
             else
-              # First push - show all files in current commit
+              # First commit in branch or HEAD~1 is on main - show all files in current commit
+              echo "No previous commit found in feature branch, showing all files in current commit"
               CHANGED_FILES=$(git show --pretty="" --name-only HEAD)
             fi
           fi
