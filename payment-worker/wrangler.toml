@@ -1,0 +1,19 @@
+name = "payment-worker"
+main = "src/index.js"
+compatibility_date = "2025-11-15"
+compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
+
+# Environment variables (non-secret). Secrets should be set via `wrangler secret put`.
+[vars]
+# PayPal REST API base URL for Sandbox
+PAYPAL_API_BASE = "https://api-m.sandbox.paypal.com"
+
+# R2 Logs binding
+[[r2_buckets]]
+binding = "LOGS"
+bucket_name = "payment-worker-logs"
+
+

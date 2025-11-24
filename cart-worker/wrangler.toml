@@ -1,0 +1,36 @@
+name = "cart-worker"
+main = "src/index.js"
+compatibility_date = "2025-11-07"
+compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "cart-db"
+database_id = "f63d3bc2-2c38-4bab-91d0-d748c96c747b"
+
+[[kv_namespaces]]
+binding = "CACHE"
+id = "3c3aa0f07a5043bfb2f6fe166b7a68bb"
+
+[[r2_buckets]]
+binding = "LOGS"
+bucket_name = "cart-worker-logs"
+
+[[services]]
+binding = "PRODUCTS_SERVICE"
+service = "products-worker"
+
+[[services]]
+binding = "PRICE_SERVICE"
+service = "price-worker"
+
+[[services]]
+binding = "FULFILLMENT_SERVICE"
+service = "fullfilment-worker"
+
+[[services]]
+binding = "ORDER_SERVICE"
+service = "orders-worker"

@@ -1,0 +1,189 @@
+/** @type {import('./$types').PageServerLoad} */
+export async function load({ fetch, url }) {
+	try {
+		const PRODUCTS_API = import.meta.env.VITE_PRODUCTS_API || 'https://products-worker.aadhi18082003.workers.dev';
+		const PRICE_API    = import.meta.env.VITE_PRICE_API    || 'https://price-worker.aadhi18082003.workers.dev';
+		const FULFILL_API  = import.meta.env.VITE_FULFILLMENT_API || 'https://fullfilment-worker.aadhi18082003.workers.dev';
+	  
+		// Read page & limit from URL, default to page 1 and 12 items per page
+		const page  = Math.max(1, parseInt(url.searchParams.get('page')  || '1', 10));
+		const limit = Math.max(1, parseInt(url.searchParams.get('limit') || '12', 10));
+	  
+		// Request the current page of products from the back‑end
+		const productsUrl = `${PRODUCTS_API.replace(/\/+$/, '')}/products?page=${page}&limit=${limit}`;
+		console.log(`[SERVER] Fetching products from backend: ${productsUrl}`);
+		const res = await fetch(productsUrl, { cache: 'no-store' });
+		
+		if (!res.ok) {
+			console.error(`Products API error: ${res.status} ${res.statusText}`);
+			return {
+				products: [],
+				pagination: { page: 1, totalPages: 1, total: 0, hasNext: false, hasPrev: false }
+			};
+		}
+		
+		const data = await res.json();
+		const rawProducts = data.products || [];
+		const pagination = data.pagination || { page: 1, totalPages: 1, total: 0, hasNext: false, hasPrev: false };
+	  
+		// Enrich only the products on this page
+		const products = await Promise.all(
+		  rawProducts.map(async (p) => {
+			try {
+				const id   = p.product_id;
+				const sku  = p.sku;
+				const name = p.name ?? 'Untitled';
+				const image = p.primary_image_url ?? '';
+				
+				// Parse sizes safely
+				let sizes = [];
+				try {
+					sizes = Array.isArray(p.available_sizes) 
+						? p.available_sizes 
+						: JSON.parse(p.available_sizes || '[]');
+				} catch {
+					sizes = [];
+				}
+		  
+				// Fetch price & stock concurrently
+				const [priceData, stockData] = await Promise.all([
+				  fetch(`${PRICE_API.replace(/\/+$/, '')}/api/price/${encodeURIComponent(sku)}?product_id=${encodeURIComponent(id)}`)
+					.then((r) => r.ok ? r.json() : { price: 0, is_on_sale: false, discount_percentage: null })
+					.catch(() => ({ price: 0, is_on_sale: false, discount_percentage: null })),
+				  fetch(`${FULFILL_API.replace(/\/+$/, '')}/api/stock/product/${encodeURIComponent(id)}`)
+					.then((r) => r.ok ? r.json() : { success: false, total_stock: 0 })
+					.catch(() => ({ success: false, total_stock: 0 })),
+				]);
+		  
+				const price = Number(priceData.price || 0);
+				const isOnSale = !!priceData.is_on_sale;
+				const discountPercentage = priceData.discount_percentage != null ? Number(priceData.discount_percentage) : null;
+				const inStock = stockData.success === true ? stockData.total_stock > 0 : false;
+		  
+				return { id, name, image, price, base_price: price, inStock, isOnSale, discountPercentage, sizes };
+			} catch (err) {
+				console.error(`Error enriching product ${p.product_id}:`, err);
+				return {
+					id: p.product_id,
+					name: p.name ?? 'Untitled',
+					image: p.primary_image_url ?? '',
+					price: 0,
+					base_price: 0,
+					inStock: false,
+					isOnSale: false,
+					discountPercentage: null,
+					sizes: []
+				};
+			}
+		  })
+		);
+	  
+		return {
+		  products,
+		  pagination,
+		};
+	} catch (err) {
+		console.error('Error loading products page:', err);
+		return {
+			products: [],
+			pagination: { page: 1, totalPages: 1, total: 0, hasNext: false, hasPrev: false }
+		};
+	}
+}
+  
+
+/**
+ * Batch enrich products - makes parallel requests more efficiently
+ */
+async function enrichProductsBatch(products, priceApi, fulfillApi) {
+	// Process all products in parallel (only ~12 products per page)
+	return Promise.all(products.map(p => enrichProduct(p, priceApi, fulfillApi)));
+}
+
+async function enrichProduct(p, priceApi, fulfillApi) {
+	const id = p.product_id;
+	const name = p.name ?? 'Untitled';
+	const image = p.primary_image_url ?? '';
+
+	// Parse sizes
+	let sizes = parseAvailableSizes(p.available_sizes);
+
+	// Parallel fetch price and stock (don't wait sequentially)
+	const [priceData, stockData] = await Promise.allSettled([
+		fetchPrice(p.sku, id, priceApi),
+		fetchStock(id, fulfillApi)
+	]);
+
+	const price = priceData.status === 'fulfilled' ? priceData.value.price : 0;
+	const isOnSale = priceData.status === 'fulfilled' ? priceData.value.isOnSale : false;
+	const discountPercentage = priceData.status === 'fulfilled' ? priceData.value.discountPercentage : null;
+	const inStock = stockData.status === 'fulfilled' ? stockData.value : false;
+
+	return {
+		id,
+		name,
+		image,
+		price,
+		base_price: price,
+		inStock,
+		isOnSale,
+		discountPercentage,
+		sizes
+	};
+}
+
+function parseAvailableSizes(sizesData) {
+	if (Array.isArray(sizesData)) return sizesData;
+	if (typeof sizesData === 'string') {
+		try {
+			const parsed = JSON.parse(sizesData);
+			if (Array.isArray(parsed)) return parsed;
+		} catch {}
+	}
+	return ['7', '8', '9', '10', '11']; // default fallback
+}
+
+async function fetchPrice(sku, productId, apiBase) {
+	if (!sku) return { price: 0, isOnSale: false, discountPercentage: null };
+	
+	try {
+		const res = await fetch(
+			`${apiBase.replace(/\/+$/, '')}/api/price/${encodeURIComponent(sku)}?product_id=${encodeURIComponent(productId)}`,
+			{ signal: AbortSignal.timeout(3000) } // 3s timeout
+		);
+		
+		if (!res.ok) throw new Error(`Price API: ${res.status}`);
+		
+		const data = await res.json();
+		if (!data?.success) throw new Error('Price API returned success=false');
+		
+		return {
+			price: Number(data.price ?? 0) || 0,
+			isOnSale: !!data.is_on_sale,
+			discountPercentage: data.discount_percentage != null ? Number(data.discount_percentage) : null
+		};
+	} catch (err) {
+		console.error(`Price fetch failed for SKU ${sku}:`, err.message);
+		return { price: 0, isOnSale: false, discountPercentage: null };
+	}
+}
+
+async function fetchStock(productId, apiBase) {
+	try {
+		const res = await fetch(
+			`${apiBase.replace(/\/+$/, '')}/api/stock/product/${encodeURIComponent(productId)}`,
+			{ 
+				cache: 'no-store',
+				signal: AbortSignal.timeout(3000)
+			}
+		);
+		
+		if (!res.ok) return false;
+		
+		const data = await res.json();
+		return data?.success === true && typeof data?.total_stock === 'number' && data.total_stock > 0;
+	} catch (err) {
+		console.error(`Stock fetch failed for product ${productId}:`, err.message);
+		return false;
+	}
+}

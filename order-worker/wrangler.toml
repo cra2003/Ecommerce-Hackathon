@@ -1,0 +1,20 @@
+name = "orders-worker"
+main = "src/index.js"
+compatibility_date = "2025-11-09"
+compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "orders-db"
+database_id = "9c835eb1-704d-4b32-8a3e-1a4059e9fc14"
+
+[[kv_namespaces]]
+binding = "CACHE"
+id = "3c3aa0f07a5043bfb2f6fe166b7a68bb"
+
+[[r2_buckets]]
+binding = "LOGS"
+bucket_name = "order-worker-logs"

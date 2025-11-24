@@ -1,0 +1,34 @@
+{
+	"name": "auth-worker",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"deploy": "wrangler deploy",
+		"dev": "wrangler dev",
+		"start": "wrangler dev",
+		"test": "mocha test/**/*.spec.js",
+		"test:unit": "mocha test/**/*.spec.js",
+		"lint": "eslint . --ext .js",
+		"lint:fix": "eslint . --ext .js --fix",
+		"knip": "knip"
+	},
+	"devDependencies": {
+		"@cloudflare/vitest-pool-workers": "^0.8.19",
+		"chai": "^4.3.10",
+		"eslint": "^8.57.1",
+		"esmock": "^2.7.3",
+		"knip": "^5.70.1",
+		"mocha": "^10.2.0",
+		"sinon": "^17.0.1",
+		"vitest": "~3.2.0",
+		"wrangler": "^4.46.0"
+	},
+	"dependencies": {
+		"@microlabs/otel-cf-workers": "^1.0.0-rc.52",
+		"@opentelemetry/api": "^1.9.0",
+		"bcryptjs": "^3.0.3",
+		"hono": "^4.10.6",
+		"jose": "^6.1.1"
+	}
+}

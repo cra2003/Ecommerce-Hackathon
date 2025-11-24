@@ -1,0 +1,16 @@
+name = "cart-cron-worker"
+main = "src/index.js"
+compatibility_date = "2025-11-15"
+
+[observability]
+enabled = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "cart-db"
+database_id = "f63d3bc2-2c38-4bab-91d0-d748c96c747b"
+
+[triggers]
+# Every minute (for testing)
+crons = ["* * * * *"]
+

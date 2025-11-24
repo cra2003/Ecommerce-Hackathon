@@ -1,0 +1,21 @@
+{
+	"name": "frontend-ui",
+	"private": true,
+	"version": "0.0.1",
+	"type": "module",
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build",
+		"preview": "vite preview",
+		"prepare": "svelte-kit sync || echo ''"
+	},
+	"devDependencies": {
+		"@sveltejs/adapter-auto": "^7.0.0",
+		"@sveltejs/kit": "^2.47.1",
+		"@sveltejs/vite-plugin-svelte": "^6.2.1",
+		"@tailwindcss/vite": "^4.1.14",
+		"svelte": "^5.41.0",
+		"tailwindcss": "^4.1.14",
+		"vite": "^7.1.10"
+	}
+}

@@ -1,0 +1,51 @@
+# For more details on how to configure Wrangler, refer to:
+# https://developers.cloudflare.com/workers/wrangler/configuration/
+
+name = "fullfilment-worker"
+main = "src/index.js"
+compatibility_date = "2025-11-15"
+compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
+
+# D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "inventory-db"
+database_id = "2fa50072-5d1c-47a2-960e-2b385d450cc8"
+
+# R2 Logs binding
+[[r2_buckets]]
+binding = "LOGS"
+bucket_name = "fullfilment-worker-logs"
+
+# KV namespace binding
+[[kv_namespaces]]
+binding = "LOCKS"
+id = "58436328549843c8b8a465c74b60f3f2"
+
+# Smart Placement
+# Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
+# placement = { mode = "smart" }
+
+# Environment Variables
+# https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
+# [vars]
+# MY_VARIABLE = "production_value"
+
+# Note: Use secrets to store sensitive data.
+# https://developers.cloudflare.com/workers/configuration/secrets/
+
+# Static Assets
+# https://developers.cloudflare.com/workers/static-assets/binding/
+# [assets]
+# directory = "./public/"
+# binding = "ASSETS"
+
+# Service Bindings (communicate between multiple Workers)
+# https://developers.cloudflare.com/workers/wrangler/configuration/#service-bindings
+# [[services]]
+# binding = "MY_SERVICE"
+# service = "my-service"
+
