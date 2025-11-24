@@ -31,13 +31,17 @@ jobs:
             HEAD_SHA="${{ github.sha }}"
             CHANGED_FILES=$(git diff --name-only $BASE_SHA $HEAD_SHA)
           else
-            # For push events, compare with the previous commit
-            if [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ] && [ -n "${{ github.event.before }}" ]; then
-              # Normal push - compare with previous commit
+            # For push events, compare with the previous commit in the same branch
+            # Use HEAD~1 to ensure we compare against previous commit in current branch, not base branch
+            if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
+              # Compare with previous commit in current branch
+              CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+            elif [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ] && [ -n "${{ github.event.before }}" ]; then
+              # Fallback: use github.event.before if HEAD~1 doesn't exist
               CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
             else
-              # First push or force push - compare with HEAD~1
-              CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git show --pretty="" --name-only HEAD)
+              # First push - show all files in current commit
+              CHANGED_FILES=$(git show --pretty="" --name-only HEAD)
             fi
           fi
           
