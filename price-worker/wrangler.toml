@@ -49,3 +49,19 @@ bucket_name = "price-worker-logs"
 # binding = "MY_SERVICE"
 # service = "my-service"
 
+[env.preview]
+name = "price-worker-preview"
+
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "price-db"
+database_id = "fff66b71-d33a-4669-bc98-4cfbed1647fe"
+
+[[env.preview.kv_namespaces]]
+binding = "PRICE_CACHE"
+id = "3d3d63b744884bc3a14c44fedb581151"
+
+[[env.preview.r2_buckets]]
+binding = "LOGS"
+bucket_name = "price-worker-logs"
+

@@ -35,17 +35,17 @@ When you change filters or pagination:
 
 ```javascript
 function updateFilter(key, value) {
-  // Update URL parameters
-  const searchParams = new URLSearchParams($currentPage.url.searchParams);
-  searchParams.set(key, value);
-  searchParams.delete('page'); // Reset to page 1
-  
-  const newUrl = `${$currentPage.url.pathname}?${searchParams.toString()}`;
-  
-  // Navigate with invalidation
-  goto(newUrl, { 
-    invalidateAll: true  // ← This triggers __data.json request
-  });
+	// Update URL parameters
+	const searchParams = new URLSearchParams($currentPage.url.searchParams);
+	searchParams.set(key, value);
+	searchParams.delete('page'); // Reset to page 1
+
+	const newUrl = `${$currentPage.url.pathname}?${searchParams.toString()}`;
+
+	// Navigate with invalidation
+	goto(newUrl, {
+		invalidateAll: true, // ← This triggers __data.json request
+	});
 }
 ```
 
@@ -68,6 +68,7 @@ function updateFilter(key, value) {
 ### What It Does
 
 The `x-sveltekit-invalidated=01` parameter is SvelteKit's way of:
+
 - **Tracking data freshness** - Ensures you get the latest data
 - **Cache busting** - Prevents browser from serving stale data
 - **Version control** - Increments when data is invalidated
@@ -75,6 +76,7 @@ The `x-sveltekit-invalidated=01` parameter is SvelteKit's way of:
 ### When It Changes
 
 The number changes when:
+
 - You call `goto()` with `invalidateAll: true`
 - You call `invalidate()` or `invalidateAll()` programmatically
 - URL parameters change (filters, pagination)
@@ -171,11 +173,13 @@ The number changes when:
 ### How It's Different
 
 **Traditional Navigation:**
+
 ```
 User clicks → Full page reload → Server renders HTML → Browser displays
 ```
 
 **SvelteKit Navigation:**
+
 ```
 User clicks → Fetch __data.json → Update page data → Smooth transition
 ```
@@ -190,36 +194,37 @@ User clicks → Fetch __data.json → Update page data → Smooth transition
 
 ```javascript
 export async function load({ fetch, url }) {
-  // 1. Read URL parameters
-  const category = url.searchParams.get('category') || null;
-  const page = parseInt(url.searchParams.get('page') || '1', 10);
-  
-  // 2. Fetch products with filters
-  const productsRes = await fetch(`${PRODUCTS_API}/products?category=${category}&page=${page}`);
-  const productsData = await productsRes.json();
-  
-  // 3. Enrich with price/stock
-  const enrichedProducts = await Promise.all(
-    productsData.products.map(async (product) => {
-      const [priceData, stockData] = await Promise.all([
-        fetchPriceData(fetch, PRICE_API, product.sku, product.product_id),
-        fetchStockData(fetch, FULFILL_API, product.product_id)
-      ]);
-      return { ...product, price: priceData.price, inStock: stockData.total_stock > 0 };
-    })
-  );
-  
-  // 4. Return data (this becomes __data.json response)
-  return {
-    products: enrichedProducts,
-    pagination: productsData.pagination,
-    filters: filterOptions,
-    activeFilters: { category }
-  };
+	// 1. Read URL parameters
+	const category = url.searchParams.get('category') || null;
+	const page = parseInt(url.searchParams.get('page') || '1', 10);
+
+	// 2. Fetch products with filters
+	const productsRes = await fetch(`${PRODUCTS_API}/products?category=${category}&page=${page}`);
+	const productsData = await productsRes.json();
+
+	// 3. Enrich with price/stock
+	const enrichedProducts = await Promise.all(
+		productsData.products.map(async product => {
+			const [priceData, stockData] = await Promise.all([
+				fetchPriceData(fetch, PRICE_API, product.sku, product.product_id),
+				fetchStockData(fetch, FULFILL_API, product.product_id),
+			]);
+			return { ...product, price: priceData.price, inStock: stockData.total_stock > 0 };
+		})
+	);
+
+	// 4. Return data (this becomes __data.json response)
+	return {
+		products: enrichedProducts,
+		pagination: productsData.pagination,
+		filters: filterOptions,
+		activeFilters: { category },
+	};
 }
 ```
 
 **When `__data.json` is called:**
+
 - SvelteKit runs this `load` function
 - Returns the data as JSON
 - Response is served at `/products/__data.json`
@@ -231,18 +236,21 @@ export async function load({ fetch, url }) {
 ### Automatic Triggers
 
 1. **Filter Changes** (FilterSidebar.svelte)
+
    ```javascript
    goto(newUrl, { invalidateAll: true });
    // → __data.json?x-sveltekit-invalidated=02
    ```
 
 2. **Pagination** (Pagination.svelte)
+
    ```html
    <a href="/products?page=2">Next</a>
    <!-- SvelteKit intercepts → __data.json?x-sveltekit-invalidated=03 -->
    ```
 
 3. **Programmatic Invalidation**
+
    ```javascript
    import { invalidateAll } from '$app/navigation';
    await invalidateAll(); // → Refetches all __data.json
@@ -300,6 +308,7 @@ When you request `/products/__data.json`, you get:
 ## Why You See It in Network Tab
 
 When you:
+
 - Change a filter
 - Click pagination
 - Navigate to products page
@@ -326,12 +335,13 @@ If you want to see what data is being returned:
 ```javascript
 // In +page.svelte
 $effect(() => {
-  console.log('Page data:', data);
-  // This logs the data from __data.json
+	console.log('Page data:', data);
+	// This logs the data from __data.json
 });
 ```
 
 Or check Network tab:
+
 1. Open DevTools → Network
 2. Filter by "Fetch/XHR"
 3. Look for `__data.json` requests
@@ -342,10 +352,10 @@ Or check Network tab:
 ## Summary
 
 The `__data.json` endpoint is SvelteKit's way of:
+
 - ✅ Loading page data without full reloads
 - ✅ Enabling smooth client-side navigation
 - ✅ Supporting data invalidation
 - ✅ Making your app feel like a SPA
 
 It's **completely normal** to see these requests in your network tab when navigating or changing filters!
-

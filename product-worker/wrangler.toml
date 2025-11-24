@@ -22,3 +22,23 @@ bucket_name = "product-images"
 [[kv_namespaces]]
 binding = "product-cache"
 id = "3c3aa0f07a5043bfb2f6fe166b7a68bb"
+
+[env.preview]
+name = "products-worker-preview"
+
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "ecommerce-db-1"
+database_id = "7633378b-87af-4fd1-8c6b-f322b8b9a1f1"
+
+[[env.preview.r2_buckets]]
+binding = "LOGS"
+bucket_name = "product-worker-logs"
+
+[[env.preview.r2_buckets]]
+binding = "PRODUCT_IMAGES"
+bucket_name = "product-images"
+
+[[env.preview.kv_namespaces]]
+binding = "product-cache"
+id = "3c3aa0f07a5043bfb2f6fe166b7a68bb"

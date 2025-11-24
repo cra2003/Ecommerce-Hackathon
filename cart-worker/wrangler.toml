@@ -34,3 +34,35 @@ service = "fullfilment-worker"
 [[services]]
 binding = "ORDER_SERVICE"
 service = "orders-worker"
+
+[env.preview]
+name = "cart-worker-preview"
+
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "cart-db"
+database_id = "f63d3bc2-2c38-4bab-91d0-d748c96c747b"
+
+[[env.preview.kv_namespaces]]
+binding = "CACHE"
+id = "3c3aa0f07a5043bfb2f6fe166b7a68bb"
+
+[[env.preview.r2_buckets]]
+binding = "LOGS"
+bucket_name = "cart-worker-logs"
+
+[[env.preview.services]]
+binding = "PRODUCTS_SERVICE"
+service = "products-worker-preview"
+
+[[env.preview.services]]
+binding = "PRICE_SERVICE"
+service = "price-worker-preview"
+
+[[env.preview.services]]
+binding = "FULFILLMENT_SERVICE"
+service = "fullfilment-worker-preview"
+
+[[env.preview.services]]
+binding = "ORDER_SERVICE"
+service = "orders-worker-preview"

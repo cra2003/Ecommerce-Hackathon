@@ -18,3 +18,19 @@ id = "3c3aa0f07a5043bfb2f6fe166b7a68bb"
 [[r2_buckets]]
 binding = "LOGS"
 bucket_name = "order-worker-logs"
+
+[env.preview]
+name = "orders-worker-preview"
+
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "orders-db"
+database_id = "9c835eb1-704d-4b32-8a3e-1a4059e9fc14"
+
+[[env.preview.kv_namespaces]]
+binding = "CACHE"
+id = "3c3aa0f07a5043bfb2f6fe166b7a68bb"
+
+[[env.preview.r2_buckets]]
+binding = "LOGS"
+bucket_name = "order-worker-logs"

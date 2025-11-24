@@ -16,12 +16,12 @@ const WORKERS = [
 	'payment-worker',
 	'fullfilment-worker',
 	'price-worker',
-	'product-worker'
+	'product-worker',
 ];
 
 for (const worker of WORKERS) {
 	const packageJsonPath = join(process.cwd(), worker, 'package.json');
-	
+
 	if (!existsSync(packageJsonPath)) {
 		console.log(`⚠️  ${worker}/package.json not found, skipping`);
 		continue;
@@ -29,7 +29,7 @@ for (const worker of WORKERS) {
 
 	try {
 		const existingPkg = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
-		
+
 		// Create minimal package.json
 		const minimalPkg = {
 			name: existingPkg.name || worker,
@@ -37,8 +37,8 @@ for (const worker of WORKERS) {
 			type: 'module',
 			scripts: {
 				lint: 'eslint .',
-				format: 'prettier --write .'
-			}
+				format: 'prettier --write .',
+			},
 		};
 
 		// Preserve dependencies if they exist (runtime deps, not devDeps)
@@ -56,4 +56,3 @@ for (const worker of WORKERS) {
 
 console.log('\n✅ All worker package.json files updated!');
 console.log('Run: npm install');
-

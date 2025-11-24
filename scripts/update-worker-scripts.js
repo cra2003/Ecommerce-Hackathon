@@ -16,7 +16,7 @@ const WORKERS = [
 	'payment-worker',
 	'fullfilment-worker',
 	'price-worker',
-	'product-worker'
+	'product-worker',
 ];
 
 const REQUIRED_SCRIPTS = {
@@ -24,22 +24,22 @@ const REQUIRED_SCRIPTS = {
 	'lint:fix': 'eslint . --ext .js --fix',
 	format: 'prettier --write "**/*.{js,json,md}"',
 	'format:check': 'prettier --check "**/*.{js,json,md}"',
-	'format:fix': 'prettier --write "**/*.{js,json,md}"'
+	'format:fix': 'prettier --write "**/*.{js,json,md}"',
 };
 
 const REQUIRED_DEV_DEPS = {
 	eslint: '^8.57.0',
 	'eslint-config-prettier': '^9.1.0',
 	'eslint-plugin-prettier': '^5.1.3',
-	prettier: '^3.2.4'
+	prettier: '^3.2.4',
 };
 
 for (const worker of WORKERS) {
 	const packageJsonPath = join(process.cwd(), worker, 'package.json');
-	
+
 	try {
 		const pkg = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
-		
+
 		// Add scripts
 		if (!pkg.scripts) pkg.scripts = {};
 		for (const [script, command] of Object.entries(REQUIRED_SCRIPTS)) {
@@ -47,7 +47,7 @@ for (const worker of WORKERS) {
 				pkg.scripts[script] = command;
 			}
 		}
-		
+
 		// Add devDependencies
 		if (!pkg.devDependencies) pkg.devDependencies = {};
 		for (const [dep, version] of Object.entries(REQUIRED_DEV_DEPS)) {
@@ -55,10 +55,10 @@ for (const worker of WORKERS) {
 				pkg.devDependencies[dep] = version;
 			}
 		}
-		
+
 		// Ensure type: module
 		if (!pkg.type) pkg.type = 'module';
-		
+
 		// Write back
 		writeFileSync(packageJsonPath, JSON.stringify(pkg, null, '\t') + '\n');
 		console.log(`✅ Updated ${worker}/package.json`);
@@ -69,4 +69,3 @@ for (const worker of WORKERS) {
 
 console.log('\n✅ All worker package.json files updated!');
 console.log('Run: npm install -ws');
-

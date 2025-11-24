@@ -16,4 +16,14 @@ PAYPAL_API_BASE = "https://api-m.sandbox.paypal.com"
 binding = "LOGS"
 bucket_name = "payment-worker-logs"
 
+[env.preview]
+name = "payment-worker-preview"
+
+[env.preview.vars]
+# PayPal REST API base URL for Sandbox
+PAYPAL_API_BASE = "https://api-m.sandbox.paypal.com"
+
+[[env.preview.r2_buckets]]
+binding = "LOGS"
+bucket_name = "payment-worker-logs"
 
