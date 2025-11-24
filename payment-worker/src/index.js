@@ -2,12 +2,14 @@ import { Hono } from 'hono';
 import { instrument } from '@microlabs/otel-cf-workers';
 import corsMiddleware from './middleware/cors.middleware.js';
 import loggingMiddleware from './middleware/logging.middleware.js';
+import tracingMiddleware from './middleware/tracing.middleware.js';
 import { registerPaymentRoutes } from './routes/payment.routes.js';
 import { registerHealthRoutes } from './routes/health.routes.js';
 
 const app = new Hono();
 
 app.use('/*', corsMiddleware);
+app.use('*', tracingMiddleware); // Add cf-ray to spans
 app.use('*', loggingMiddleware);
 
 registerPaymentRoutes(app);
