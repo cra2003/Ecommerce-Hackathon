@@ -25,11 +25,13 @@ Your API key is being sent (length: 32), but Honeycomb is returning 401 Unauthor
 ### Step 2: Get the Correct API Key
 
 Honeycomb API keys should:
+
 - Be longer than 32 characters (usually 32-64 chars)
 - Start with your team identifier
 - Have write permissions
 
 **To create a new API key:**
+
 1. Go to Settings → API Keys
 2. Click "Create API Key"
 3. Name it (e.g., "OpenTelemetry Workers")
@@ -44,7 +46,8 @@ wrangler secret put OTEL_INGEST_API_KEY
 # Paste the FULL API key (no spaces, no newlines)
 ```
 
-**Important:** 
+**Important:**
+
 - Copy the entire key
 - Don't add any spaces or newlines
 - The key should be one continuous string
@@ -58,6 +61,7 @@ wrangler tail | grep "API key present"
 ```
 
 You should see something like:
+
 ```
 [OTEL] API key present: Yes (length: 48)
 ```
@@ -82,6 +86,7 @@ If you get 200 or 400 (bad request), the key is valid.
 ### Step 6: Check for Multiple Keys
 
 If you have multiple API keys:
+
 - Make sure you're using the **Write** key
 - Not a **Read** key
 - Not a **Classic** key (use OTLP keys)
@@ -106,6 +111,7 @@ npm run deploy
 ## Verification
 
 After fixing, you should see in logs:
+
 ```
 [OTEL] Tracing enabled for cart-worker
 [OTEL] Endpoint: https://api.honeycomb.io/v1/traces
@@ -122,4 +128,3 @@ And **NO** 401 errors when exporting spans.
 3. **Verify the key works** with the curl test above
 4. **Check Honeycomb status** - Make sure their API is operational
 5. **Contact Honeycomb support** if the key is definitely correct
-

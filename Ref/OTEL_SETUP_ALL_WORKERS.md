@@ -66,6 +66,7 @@ wrangler secret put OTEL_EXPORTER_OTLP_ENDPOINT
 ```
 
 Repeat for:
+
 - `cart-worker`
 - `payment-worker`
 - `fullfilment-worker`
@@ -90,11 +91,13 @@ Repeat for:
 ### Provider-Specific Endpoints
 
 #### Honeycomb (Default)
+
 - Endpoint: `https://api.honeycomb.io/v1/traces`
 - Header: `X-Honeycomb-Team` (contains API key)
 - Set only `OTEL_INGEST_API_KEY`
 
 #### Grafana Cloud
+
 - Endpoint: `https://otlp-gateway-<region>.grafana.net/otlp`
 - Header: `Authorization: Basic <base64-encoded-api-key>`
 - Set both:
@@ -102,6 +105,7 @@ Repeat for:
   - `OTEL_EXPORTER_OTLP_ENDPOINT` = Your Grafana OTLP endpoint
 
 #### Generic OTLP Endpoint
+
 - Header: `Authorization: Bearer <api-key>`
 - Set both:
   - `OTEL_INGEST_API_KEY` = Your API key
@@ -121,6 +125,7 @@ Each worker is traced with its specific service name:
 ## What Gets Traced
 
 All workers automatically trace:
+
 - ✅ All HTTP requests and responses
 - ✅ Fetch calls (service-to-service communication)
 - ✅ Service name and version
@@ -174,4 +179,3 @@ OTEL_EXPORTER_OTLP_ENDPOINT=https://api.honeycomb.io/v1/traces
 ```
 
 **Note:** Don't commit `.dev.vars` to git (it's already in `.gitignore`).
-

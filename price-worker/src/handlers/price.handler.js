@@ -18,6 +18,7 @@ export async function getPriceHandler(c) {
 /**
  * GET /api/price?sku=XXX&product_id=YYY
  * Alternative query parameter endpoint
+ * Redirects to the path parameter endpoint
  */
 export async function getPriceQueryHandler(c) {
 	const sku = c.req.query('sku');

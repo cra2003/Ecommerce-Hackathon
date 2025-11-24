@@ -1,24 +1,29 @@
 # Order Placement Implementation
 
 ## Overview
+
 Complete implementation of order placement with atomicity, race condition handling, and stock deduction.
 
 ## Files Created/Modified
 
 ### 1. Fulfillment Worker (`fullfilment-worker/src/index.js`)
+
 **Added Endpoints:**
 
 #### `POST /api/stock/deduct`
+
 - **Purpose**: Atomically deduct stock from a specific warehouse
 - **Race Condition Prevention**: Uses optimistic locking (UPDATE WHERE stock = old_value)
 - **Returns 409 Conflict** if stock changed during transaction
 - **Validates** sufficient stock before deduction
 
 #### `POST /api/stock/restore`
+
 - **Purpose**: Restore stock (for order cancellation/rollback)
 - **Use Case**: Rollback when order placement fails mid-way
 
 ### 2. Order Worker Migration (`order-worker/migrations/0001_orders_tables.sql`)
+
 **Tables Created:**
 
 ```sql
@@ -54,10 +59,12 @@ CREATE TABLE order_status_history (
 ```
 
 ### 3. Cart Worker - Place Order Endpoint
+
 **Location**: `cart-worker/src/index.js`
 **Endpoint**: `POST /cart/place-order`
 
 #### Flow:
+
 1. **Validate Cart & Address**
    - Check cart has products
    - Check shipping address exists
@@ -115,6 +122,7 @@ T7      Order confirmed                 Return 409 Conflict
 ## Service Bindings Required
 
 ### In `cart-worker/wrangler.toml`:
+
 ```toml
 [[services]]
 binding = "FULFILLMENT_SERVICE"
@@ -126,6 +134,7 @@ service = "order-worker"
 ```
 
 ### In `order-worker/wrangler.toml`:
+
 ```toml
 [[d1_databases]]
 binding = "DB"
@@ -152,25 +161,26 @@ cd ../order-worker && npx wrangler deploy
 ## Frontend Integration
 
 ### API Call (from checkout summary page):
+
 ```javascript
-const placeOrder = async (deliveryMode) => {
-  const token = get(accessToken);
-  const res = await fetch(`${CART_API}/cart/place-order`, {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      authorization: `Bearer ${token}`
-    },
-    body: JSON.stringify({ delivery_mode: deliveryMode }),
-    credentials: 'include'
-  });
-  
-  if (!res.ok) {
-    const data = await res.json();
-    throw new Error(data.error || 'Order failed');
-  }
-  
-  return res.json();
+const placeOrder = async deliveryMode => {
+	const token = get(accessToken);
+	const res = await fetch(`${CART_API}/cart/place-order`, {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			authorization: `Bearer ${token}`,
+		},
+		body: JSON.stringify({ delivery_mode: deliveryMode }),
+		credentials: 'include',
+	});
+
+	if (!res.ok) {
+		const data = await res.json();
+		throw new Error(data.error || 'Order failed');
+	}
+
+	return res.json();
 };
 ```
 
@@ -200,6 +210,7 @@ const placeOrder = async (deliveryMode) => {
 ## Monitoring
 
 Check logs for:
+
 - `[place-order]` - Order placement flow
 - `[stock-deduct]` - Stock deduction operations
 - `[stock-restore]` - Rollback operations
@@ -214,4 +225,3 @@ Check logs for:
 4. Add admin endpoints for order management
 5. Add email notifications
 6. Add order tracking
-

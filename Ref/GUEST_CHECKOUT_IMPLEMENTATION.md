@@ -6,7 +6,7 @@
 
 1. **auth-worker**:
    - ✅ Cookie parsing utilities (`src/utils/cookie.util.js`)
-   - ✅ Guest session initialization endpoint (`/api/guest/init`) 
+   - ✅ Guest session initialization endpoint (`/api/guest/init`)
    - ✅ `guest_sessions` table migration (`0003_guest_sessions_table.sql`)
    - ✅ Route registration for guest endpoints
 
@@ -39,7 +39,7 @@
 
 2. **order-worker**:
    - ❌ Create cookie parsing utilities
-   - ❌ Create `getUserOrGuest` utility  
+   - ❌ Create `getUserOrGuest` utility
    - ❌ Create `authOrGuestMiddleware`
    - ❌ Update order creation to support `guest_session_id`
    - ❌ Update order routes to use `authOrGuestMiddleware`
@@ -62,6 +62,7 @@
 ## 📝 KEY FILES CREATED/MODIFIED
 
 ### New Files:
+
 - `auth-worker/src/utils/cookie.util.js`
 - `auth-worker/src/utils/auth.util.js`
 - `auth-worker/src/handlers/guest.handler.js`
@@ -75,6 +76,7 @@
 - `frontend-ui/src/lib/utils/guest.js`
 
 ### Modified Files:
+
 - `auth-worker/src/index.js` - Added guest routes
 - `cart-worker/src/routes/cart.routes.js` - Changed to `authOrGuestMiddleware`
 - `cart-worker/src/models/cart.model.js` - Updated for guest support
@@ -113,4 +115,3 @@
 3. Update order creation logic for guest sessions
 4. Update frontend API calls to handle guest sessions
 5. Test end-to-end guest checkout flow
-

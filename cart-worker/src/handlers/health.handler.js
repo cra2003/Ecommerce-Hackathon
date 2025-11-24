@@ -20,7 +20,7 @@ export async function healthHandler(c) {
 	if (c.env.CACHE) {
 		try {
 			const testKey = `health-check-${Date.now()}`;
-			await c.env.CACHE.put(testKey, 'test', { expirationTtl: 1 });
+			await c.env.CACHE.put(testKey, 'test', { expirationTtl: 60 });
 			const value = await c.env.CACHE.get(testKey);
 			await c.env.CACHE.delete(testKey);
 			checks.bindings.CACHE = { status: 'ok', test: value === 'test' };

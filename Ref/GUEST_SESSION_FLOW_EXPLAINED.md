@@ -5,6 +5,7 @@ This document explains how the guest checkout system works, from form submission
 ## Overview
 
 The guest session system allows users to shop without creating an account. It uses:
+
 1. **Cookies** - Stored on the frontend domain (localhost:5173 or your domain)
 2. **Custom Headers** - `X-Guest-Session-Id` sent to cross-domain workers
 3. **Database** - `guest_sessions` table in auth-worker to store guest details
@@ -20,36 +21,37 @@ The guest session system allows users to shop without creating an account. It us
 ```javascript
 // User fills out the form (name, email, phone)
 async function handleSubmit(e) {
-  // 1. Validate form data
-  if (!name.trim() || !email.trim()) {
-    error = 'Name and email are required';
-    return;
-  }
+	// 1. Validate form data
+	if (!name.trim() || !email.trim()) {
+		error = 'Name and email are required';
+		return;
+	}
 
-  // 2. POST to auth-worker to create guest session
-  const response = await fetch(`${AUTH_API}/api/guest/init`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      phone: phone.trim() || null
-    }),
-    credentials: 'include' // Important: allows cookies to be set
-  });
+	// 2. POST to auth-worker to create guest session
+	const response = await fetch(`${AUTH_API}/api/guest/init`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({
+			name: name.trim(),
+			email: email.trim().toLowerCase(),
+			phone: phone.trim() || null,
+		}),
+		credentials: 'include', // Important: allows cookies to be set
+	});
 
-  // 3. If successful, get guest_session_id from response
-  const data = await response.json();
-  if (response.ok && data.success) {
-    const guestSessionId = data.guest_session_id; // e.g., "58a92799-9299-4e9e-afa3-57f11f9bdf8a"
-    
-    // 4. Store in cookie on frontend domain
-    setGuestSessionCookie(guestSessionId);
-  }
+	// 3. If successful, get guest_session_id from response
+	const data = await response.json();
+	if (response.ok && data.success) {
+		const guestSessionId = data.guest_session_id; // e.g., "58a92799-9299-4e9e-afa3-57f11f9bdf8a"
+
+		// 4. Store in cookie on frontend domain
+		setGuestSessionCookie(guestSessionId);
+	}
 }
 ```
 
 **Key Points:**
+
 - `credentials: 'include'` ensures cookies can be set/received
 - The response contains `guest_session_id` (UUID)
 - Frontend stores it in a cookie immediately
@@ -64,44 +66,51 @@ async function handleSubmit(e) {
 
 ```javascript
 export async function initGuestSession(c) {
-  // 1. Get form data
-  const { name, email, phone } = await c.req.json();
+	// 1. Get form data
+	const { name, email, phone } = await c.req.json();
 
-  // 2. Generate UUID for guest session
-  const guestSessionId = crypto.randomUUID();
-  // Example: "58a92799-9299-4e9e-afa3-57f11f9bdf8a"
+	// 2. Generate UUID for guest session
+	const guestSessionId = crypto.randomUUID();
+	// Example: "58a92799-9299-4e9e-afa3-57f11f9bdf8a"
 
-  // 3. Calculate expiry (6 hours from now)
-  const expiresAt = new Date();
-  expiresAt.setHours(expiresAt.getHours() + 6);
+	// 3. Calculate expiry (6 hours from now)
+	const expiresAt = new Date();
+	expiresAt.setHours(expiresAt.getHours() + 6);
 
-  // 4. Insert into database
-  await c.env.DB.prepare(
-    `INSERT INTO guest_sessions (guest_session_id, name, email, phone, expires_at)
+	// 4. Insert into database
+	await c.env.DB.prepare(
+		`INSERT INTO guest_sessions (guest_session_id, name, email, phone, expires_at)
      VALUES (?, ?, ?, ?, ?)`
-  ).bind(guestSessionId, name, email, phone, expiresAt.toISOString()).run();
+	)
+		.bind(guestSessionId, name, email, phone, expiresAt.toISOString())
+		.run();
 
-  // 5. Create cookie header
-  const cookieHeader = createCookieHeader('guest_session_id', guestSessionId, {
-    maxAge: 21600,      // 6 hours in seconds
-    path: '/',          // Available to all paths
-    secure: true,       // HTTPS only
-    httpOnly: false,    // Frontend can read it (needed for cross-domain)
-    sameSite: 'Lax'     // Allows cross-site requests
-  });
+	// 5. Create cookie header
+	const cookieHeader = createCookieHeader('guest_session_id', guestSessionId, {
+		maxAge: 21600, // 6 hours in seconds
+		path: '/', // Available to all paths
+		secure: true, // HTTPS only
+		httpOnly: false, // Frontend can read it (needed for cross-domain)
+		sameSite: 'Lax', // Allows cross-site requests
+	});
 
-  // 6. Return response with Set-Cookie header
-  return c.json({
-    success: true,
-    guest_session_id: guestSessionId,
-    expires_at: expiresAt.toISOString()
-  }, 200, {
-    'Set-Cookie': cookieHeader  // Browser automatically sets this cookie
-  });
+	// 6. Return response with Set-Cookie header
+	return c.json(
+		{
+			success: true,
+			guest_session_id: guestSessionId,
+			expires_at: expiresAt.toISOString(),
+		},
+		200,
+		{
+			'Set-Cookie': cookieHeader, // Browser automatically sets this cookie
+		}
+	);
 }
 ```
 
 **Key Points:**
+
 - Guest session is stored in `auth-worker` database
 - Cookie is set by backend via `Set-Cookie` header
 - `httpOnly: false` allows frontend JavaScript to read it
@@ -117,25 +126,26 @@ export async function initGuestSession(c) {
 
 ```javascript
 export function setGuestSessionCookie(guestSessionId) {
-  // 1. Calculate expiry date (6 hours from now)
-  const expires = new Date();
-  expires.setHours(expires.getHours() + 6);
+	// 1. Calculate expiry date (6 hours from now)
+	const expires = new Date();
+	expires.setHours(expires.getHours() + 6);
 
-  // 2. Build cookie string
-  const cookieString = `guest_session_id=${encodeURIComponent(guestSessionId)}; expires=${expires.toUTCString()}; path=/; SameSite=Lax; Secure`;
+	// 2. Build cookie string
+	const cookieString = `guest_session_id=${encodeURIComponent(guestSessionId)}; expires=${expires.toUTCString()}; path=/; SameSite=Lax; Secure`;
 
-  // 3. Set cookie in browser
-  document.cookie = cookieString;
-  // Result: Cookie is now stored in browser
-  // Name: guest_session_id
-  // Value: 58a92799-9299-4e9e-afa3-57f11f9bdf8a
-  // Domain: localhost (or your domain)
-  // Path: /
-  // Expires: 6 hours from now
+	// 3. Set cookie in browser
+	document.cookie = cookieString;
+	// Result: Cookie is now stored in browser
+	// Name: guest_session_id
+	// Value: 58a92799-9299-4e9e-afa3-57f11f9bdf8a
+	// Domain: localhost (or your domain)
+	// Path: /
+	// Expires: 6 hours from now
 }
 ```
 
 **Cookie Details:**
+
 - **Name:** `guest_session_id`
 - **Value:** UUID (e.g., `58a92799-9299-4e9e-afa3-57f11f9bdf8a`)
 - **Domain:** Frontend domain (localhost:5173 or your domain)
@@ -154,42 +164,43 @@ export function setGuestSessionCookie(guestSessionId) {
 
 ```javascript
 function buildAuthHeaders(token = null, additionalHeaders = {}) {
-  const headers = {
-    'Content-Type': 'application/json',
-    ...additionalHeaders
-  };
-  
-  if (token) {
-    // Authenticated user: use JWT token
-    headers.authorization = `Bearer ${token}`;
-  } else {
-    // Guest user: get guest_session_id from cookie
-    const guestSessionId = getGuestSessionId(); // Reads from document.cookie
-    
-    if (guestSessionId) {
-      // Send as custom header (needed for cross-domain workers)
-      headers['X-Guest-Session-Id'] = guestSessionId;
-      // Example: X-Guest-Session-Id: 58a92799-9299-4e9e-afa3-57f11f9bdf8a
-    }
-  }
-  
-  return headers;
+	const headers = {
+		'Content-Type': 'application/json',
+		...additionalHeaders,
+	};
+
+	if (token) {
+		// Authenticated user: use JWT token
+		headers.authorization = `Bearer ${token}`;
+	} else {
+		// Guest user: get guest_session_id from cookie
+		const guestSessionId = getGuestSessionId(); // Reads from document.cookie
+
+		if (guestSessionId) {
+			// Send as custom header (needed for cross-domain workers)
+			headers['X-Guest-Session-Id'] = guestSessionId;
+			// Example: X-Guest-Session-Id: 58a92799-9299-4e9e-afa3-57f11f9bdf8a
+		}
+	}
+
+	return headers;
 }
 
 // Example: Adding product to cart
 export async function addProductToCart(token, payload) {
-  const headers = buildAuthHeaders(token); // Gets guest_session_id from cookie
-  
-  const res = await fetch(`${CART_API}/cart/add`, {
-    method: 'POST',
-    headers, // Contains X-Guest-Session-Id header
-    body: JSON.stringify(payload),
-    credentials: 'include' // Also sends cookies (though workers can't read them cross-domain)
-  });
+	const headers = buildAuthHeaders(token); // Gets guest_session_id from cookie
+
+	const res = await fetch(`${CART_API}/cart/add`, {
+		method: 'POST',
+		headers, // Contains X-Guest-Session-Id header
+		body: JSON.stringify(payload),
+		credentials: 'include', // Also sends cookies (though workers can't read them cross-domain)
+	});
 }
 ```
 
 **Why Custom Header?**
+
 - Cookies are domain-specific
 - Frontend is on `localhost:5173` (or your domain)
 - Workers are on `*.workers.dev` (different domain)
@@ -206,25 +217,25 @@ export async function addProductToCart(token, payload) {
 
 ```javascript
 export default async function authOrGuestMiddleware(c, next) {
-  // 1. Check if user is authenticated OR guest
-  const authInfo = await getUserOrGuest(c.req.raw, c.env);
-  
-  // authInfo will be:
-  // { type: 'user', user_id: '...' } OR
-  // { type: 'guest', guest_session_id: '...' } OR
-  // { type: null }
-  
-  if (authInfo.type === 'user') {
-    c.set('user_id', authInfo.user_id);
-    c.set('guest_session_id', null);
-  } else if (authInfo.type === 'guest') {
-    c.set('user_id', null);
-    c.set('guest_session_id', authInfo.guest_session_id);
-  } else {
-    return c.json({ error: 'Authentication required' }, 401);
-  }
-  
-  await next(); // Continue to handler
+	// 1. Check if user is authenticated OR guest
+	const authInfo = await getUserOrGuest(c.req.raw, c.env);
+
+	// authInfo will be:
+	// { type: 'user', user_id: '...' } OR
+	// { type: 'guest', guest_session_id: '...' } OR
+	// { type: null }
+
+	if (authInfo.type === 'user') {
+		c.set('user_id', authInfo.user_id);
+		c.set('guest_session_id', null);
+	} else if (authInfo.type === 'guest') {
+		c.set('user_id', null);
+		c.set('guest_session_id', authInfo.guest_session_id);
+	} else {
+		return c.json({ error: 'Authentication required' }, 401);
+	}
+
+	await next(); // Continue to handler
 }
 ```
 
@@ -266,6 +277,7 @@ export async function getUserOrGuest(request, env) {
 ```
 
 **Priority Order:**
+
 1. JWT token (if present) → Authenticated user
 2. `X-Guest-Session-Id` header → Guest user
 3. `guest_session_id` cookie → Guest user (fallback)
@@ -279,27 +291,28 @@ export async function getUserOrGuest(request, env) {
 
 ```javascript
 export async function addProductToCart(c) {
-  // 1. Get user/guest identifier from context
-  const cartInfo = getCartIdentifier(c);
-  // Returns: { user_id: null, guest_session_id: '58a92799-...', cacheKey: '...' }
-  
-  // 2. Find or create cart using guest_session_id
-  let cart = await findActiveCart(c.env.DB, null, cartInfo.guest_session_id);
-  // SQL: SELECT * FROM carts WHERE guest_session_id = ? AND status = 'active'
-  
-  if (!cart) {
-    // Create new cart for guest
-    cart = await getOrCreateCart(c.env.DB, null, cartInfo.guest_session_id);
-    // SQL: INSERT INTO carts (cart_id, user_id, guest_session_id, products, status)
-    //      VALUES (?, NULL, '58a92799-...', '[]', 'active')
-  }
-  
-  // 3. Add product to cart
-  // ... rest of logic
+	// 1. Get user/guest identifier from context
+	const cartInfo = getCartIdentifier(c);
+	// Returns: { user_id: null, guest_session_id: '58a92799-...', cacheKey: '...' }
+
+	// 2. Find or create cart using guest_session_id
+	let cart = await findActiveCart(c.env.DB, null, cartInfo.guest_session_id);
+	// SQL: SELECT * FROM carts WHERE guest_session_id = ? AND status = 'active'
+
+	if (!cart) {
+		// Create new cart for guest
+		cart = await getOrCreateCart(c.env.DB, null, cartInfo.guest_session_id);
+		// SQL: INSERT INTO carts (cart_id, user_id, guest_session_id, products, status)
+		//      VALUES (?, NULL, '58a92799-...', '[]', 'active')
+	}
+
+	// 3. Add product to cart
+	// ... rest of logic
 }
 ```
 
 **Database Schema:**
+
 ```sql
 CREATE TABLE carts (
   cart_id TEXT PRIMARY KEY,
@@ -315,6 +328,7 @@ CREATE TABLE carts (
 ```
 
 **Key Constraint:**
+
 - Either `user_id` OR `guest_session_id` must be present
 - Not both, not neither
 
@@ -400,12 +414,14 @@ CREATE TABLE carts (
 ### 1. Cookie vs Header
 
 **Cookie:**
+
 - Stored in browser on frontend domain
 - Automatically sent with requests to same domain
 - Can be read by JavaScript (`document.cookie`)
 - Does NOT cross domains (localhost → workers.dev)
 
 **Header:**
+
 - Manually added by frontend JavaScript
 - Sent with every request
 - Works across domains
@@ -441,12 +457,12 @@ const guestSessionId = getGuestSessionId(); // From cookie
 // guestSessionId = "58a92799-9299-4e9e-afa3-57f11f9bdf8a"
 
 fetch('https://cart-worker.aadhi18082003.workers.dev/cart/add', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'X-Guest-Session-Id': '58a92799-9299-4e9e-afa3-57f11f9bdf8a'
-  },
-  body: JSON.stringify({ product_id: '...', size: '10', quantity: 1 })
+	method: 'POST',
+	headers: {
+		'Content-Type': 'application/json',
+		'X-Guest-Session-Id': '58a92799-9299-4e9e-afa3-57f11f9bdf8a',
+	},
+	body: JSON.stringify({ product_id: '...', size: '10', quantity: 1 }),
 });
 ```
 
@@ -468,9 +484,9 @@ const cart = await findActiveCart(db, null, guestSessionId);
 const guestSessionId = getGuestSessionId(); // Still in cookie
 
 fetch('https://cart-worker.aadhi18082003.workers.dev/cart', {
-  headers: {
-    'X-Guest-Session-Id': '58a92799-9299-4e9e-afa3-57f11f9bdf8a'
-  }
+	headers: {
+		'X-Guest-Session-Id': '58a92799-9299-4e9e-afa3-57f11f9bdf8a',
+	},
 });
 ```
 
@@ -492,4 +508,3 @@ const cart = await findActiveCart(db, null, guestSessionId);
 6. **Backend uses guest_session_id** → Finds/creates cart, processes order
 
 The system seamlessly handles both authenticated users (JWT) and guests (cookie + header), allowing the same API endpoints to work for both.
-

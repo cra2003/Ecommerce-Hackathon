@@ -166,14 +166,16 @@ devalue walks through your data structure and creates a flat array of all unique
 ### Step 2: Replace Values with References
 
 Instead of duplicating `100` for both `price` and `base_price`, devalue:
+
 - Stores `100` once at index 4
 - Uses reference `4` for both `price` and `base_price`
 
 This is why you see:
+
 ```json
 {
-  "price": 6,
-  "base_price": 6  // Same reference!
+	"price": 6,
+	"base_price": 6 // Same reference!
 }
 ```
 
@@ -188,22 +190,25 @@ The reference array is serialized as JSON, creating the compact format you see.
 ### Benefits:
 
 1. **Deduplication** - Same values stored once
+
    ```javascript
    // Without devalue:
    { price: 100, base_price: 100 }  // 100 stored twice
-   
+
    // With devalue:
    [100]  // Stored once, referenced twice
    ```
 
 2. **Circular References** - Can handle objects that reference themselves
+
    ```javascript
-   const obj = { name: "test" };
-   obj.self = obj;  // Circular reference
+   const obj = { name: 'test' };
+   obj.self = obj; // Circular reference
    // JSON.stringify() would fail, devalue handles it
    ```
 
 3. **Smaller Payload** - Especially for large arrays with repeated values
+
    ```javascript
    // 1000 products, all with inStock: true
    // Without devalue: "inStock":true repeated 1000 times
@@ -229,6 +234,7 @@ export async function load({ fetch, url }) {
 ```
 
 SvelteKit internally does:
+
 ```javascript
 import { stringify } from 'devalue';
 const serialized = stringify(data);
@@ -246,6 +252,7 @@ const data = parse(serializedJson);
 ```
 
 Then in your component:
+
 ```svelte
 <script>
   let { data } = $props();
@@ -261,11 +268,13 @@ Then in your component:
 ### In Network Tab:
 
 When you see:
+
 ```
 GET /products/__data.json?x-sveltekit-invalidated=01
 ```
 
 The response is the devalue-serialized format. SvelteKit automatically:
+
 1. Receives the serialized JSON
 2. Deserializes it using `devalue.parse()`
 3. Passes it to your component as `data` prop
@@ -280,9 +289,7 @@ The response is the devalue-serialized format. SvelteKit automatically:
 ```javascript
 // +page.server.js
 return {
-  products: [
-    { id: "1", name: "Shoe", price: 100, base_price: 100 }
-  ]
+	products: [{ id: '1', name: 'Shoe', price: 100, base_price: 100 }],
 };
 ```
 
@@ -317,19 +324,13 @@ const serialized = stringify({
 ```json
 // Response from /products/__data.json
 {
-  "type": "data",
-  "nodes": [
-    {
-      "type": "data",
-      "data": [
-        { "products": 1 },
-        [{ "id": 2, "name": 3, "price": 4, "base_price": 4 }],
-        "1",
-        "Shoe",
-        100
-      ]
-    }
-  ]
+	"type": "data",
+	"nodes": [
+		{
+			"type": "data",
+			"data": [{ "products": 1 }, [{ "id": 2, "name": 3, "price": 4, "base_price": 4 }], "1", "Shoe", 100]
+		}
+	]
 }
 ```
 
@@ -341,9 +342,7 @@ const data = parse(responseJson);
 
 // Result:
 {
-  products: [
-    { id: "1", name: "Shoe", price: 100, base_price: 100 }
-  ]
+	products: [{ id: '1', name: 'Shoe', price: 100, base_price: 100 }];
 }
 ```
 
@@ -380,7 +379,7 @@ If you want to see the actual data structure in your component:
 ```svelte
 <script>
   let { data } = $props();
-  
+
   $effect(() => {
     console.log('Actual data structure:', data);
     // This shows the deserialized, original structure
@@ -390,8 +389,8 @@ If you want to see the actual data structure in your component:
 ```
 
 The devalue format is only visible in:
+
 - Network tab (raw response)
 - SvelteKit's internal serialization
 
 Your component code always works with the original data structure!
-

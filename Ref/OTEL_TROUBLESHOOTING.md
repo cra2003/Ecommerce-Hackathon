@@ -31,6 +31,7 @@ cd auth-worker && wrangler tail --format pretty | grep OTEL
 ```
 
 Look for:
+
 - `[OTEL] Tracing enabled for <worker-name>` - ✅ Tracing is working
 - `[OTEL] OTEL_INGEST_API_KEY not found` - ❌ Secret is missing
 
@@ -101,6 +102,7 @@ In Honeycomb:
 ## Step 8: Verify API Key Permissions
 
 Make sure your Honeycomb API key has:
+
 - ✅ **Write** permissions
 - ✅ Access to the correct dataset
 - ✅ Not expired
@@ -110,6 +112,7 @@ Make sure your Honeycomb API key has:
 ### Issue: Only one worker shows up
 
 **Possible causes:**
+
 1. Secrets not set for other workers
 2. Workers not receiving traffic
 3. Workers not redeployed after adding secrets
@@ -120,11 +123,13 @@ Make sure your Honeycomb API key has:
 ### Issue: No traces at all
 
 **Possible causes:**
+
 1. API key is invalid
 2. Endpoint URL is wrong
 3. Network issues
 
 **Solution:**
+
 - Verify API key in Honeycomb dashboard
 - Check worker logs for errors
 - Test with `curl` to see if workers respond
@@ -145,18 +150,18 @@ WORKERS=("price-worker" "cart-worker" "payment-worker" "fullfilment-worker" "aut
 for worker in "${WORKERS[@]}"; do
   echo "=== Checking $worker ==="
   cd "$worker"
-  
+
   # Check if secret exists
   if wrangler secret list | grep -q "OTEL_INGEST_API_KEY"; then
     echo "✅ Secret found"
   else
     echo "❌ Secret NOT found - run: wrangler secret put OTEL_INGEST_API_KEY"
   fi
-  
+
   # Check if deployed
   echo "Checking deployment status..."
   wrangler deployments list | head -5
-  
+
   cd ..
   echo ""
 done
@@ -172,8 +177,8 @@ done
 ## Expected Behavior
 
 After setup, you should see:
+
 - ✅ All 6 workers in Honeycomb service list
 - ✅ Traces appearing within 1-2 minutes of requests
 - ✅ Service names matching worker names
 - ✅ Distributed traces showing service-to-service calls
-

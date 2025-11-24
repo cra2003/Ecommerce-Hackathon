@@ -18,19 +18,19 @@ export function saveRedirectBeforeLogin(url = null) {
 
 	// Client-side: set cookie using document.cookie
 	const targetUrl = url || window.location.pathname + window.location.search;
-	
+
 	// Create expiry date (10 minutes from now)
 	const expires = new Date();
 	expires.setMinutes(expires.getMinutes() + COOKIE_EXPIRY_MINUTES);
-	
+
 	// Build cookie string
 	const cookieValue = encodeURIComponent(targetUrl);
 	// secure: false (as requested), httpOnly: false (can't set httpOnly from client)
 	const cookieString = `${REDIRECT_COOKIE_NAME}=${cookieValue}; expires=${expires.toUTCString()}; path=/; SameSite=Lax`;
-	
+
 	// Set cookie
 	document.cookie = cookieString;
-	
+
 	console.log('[login-redirect] Saved redirect URL to cookie:', targetUrl);
 }
 
@@ -83,4 +83,3 @@ export function redirectToLogin(url = null) {
 		window.location.href = '/login';
 	}
 }
-
