@@ -9,7 +9,7 @@ User visits: http://localhost:5173/products
   ↓
 SvelteKit Server receives request
   ↓
-Calls: load({ fetch, url }) from +page.server.js
+Calls: load({ fetch, ul }) from +page.server.js
   ↓
 Function executes on SERVER
   ↓
