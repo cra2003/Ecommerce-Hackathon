@@ -243,11 +243,6 @@ jobs:
     strategy:
       matrix:
         worker: ${{ fromJson(needs.detect-changes.outputs.workers-json) }}
-        include:
-          - worker: order-worker
-            url: https://orders-worker-preview.aadhi18082003.workers.dev/health
-          - worker: product-worker
-            url: https://products-worker-preview.aadhi18082003.workers.dev/health
       fail-fast: false
     continue-on-error: true
     steps:
@@ -260,10 +255,8 @@ jobs:
           echo "Running preview health check for ${{ matrix.worker }}..."
           WORKER_NAME="${{ matrix.worker }}"
           
-          # Use matrix URL if defined, otherwise construct from worker name
-          if [ -n "${{ matrix.url }}" ]; then
-            URL="${{ matrix.url }}"
-          elif [ "$WORKER_NAME" = "order-worker" ]; then
+          # Construct URL from worker name
+          if [ "$WORKER_NAME" = "order-worker" ]; then
             URL="https://orders-worker-preview.aadhi18082003.workers.dev/health"
           elif [ "$WORKER_NAME" = "product-worker" ]; then
             URL="https://products-worker-preview.aadhi18082003.workers.dev/health"
@@ -305,11 +298,6 @@ jobs:
     strategy:
       matrix:
         worker: ${{ fromJson(needs.detect-changes.outputs.workers-json) }}
-        include:
-          - worker: order-worker
-            url: https://orders-worker-preview.aadhi18082003.workers.dev/health
-          - worker: product-worker
-            url: https://products-worker-preview.aadhi18082003.workers.dev/health
       fail-fast: false
     steps:
       - name: Checkout code
@@ -434,11 +422,6 @@ jobs:
     strategy:
       matrix:
         worker: ${{ fromJson(needs.detect-changes.outputs.workers-json) }}
-        include:
-          - worker: order-worker
-            url: https://orders-worker.aadhi18082003.workers.dev/health
-          - worker: product-worker
-            url: https://products-worker.aadhi18082003.workers.dev/health
       fail-fast: false
     continue-on-error: true
     steps:
@@ -451,10 +434,8 @@ jobs:
           echo "Running production health check for ${{ matrix.worker }}..."
           WORKER_NAME="${{ matrix.worker }}"
           
-          # Use matrix URL if defined, otherwise construct from worker name
-          if [ -n "${{ matrix.url }}" ]; then
-            URL="${{ matrix.url }}"
-          elif [ "$WORKER_NAME" = "order-worker" ]; then
+          # Construct URL from worker name
+          if [ "$WORKER_NAME" = "order-worker" ]; then
             URL="https://orders-worker.aadhi18082003.workers.dev/health"
           elif [ "$WORKER_NAME" = "product-worker" ]; then
             URL="https://products-worker.aadhi18082003.workers.dev/health"
@@ -497,11 +478,6 @@ jobs:
     strategy:
       matrix:
         worker: ${{ fromJson(needs.detect-changes.outputs.workers-json) }}
-        include:
-          - worker: order-worker
-            url: https://orders-worker.aadhi18082003.workers.dev/health
-          - worker: product-worker
-            url: https://products-worker.aadhi18082003.workers.dev/health
       fail-fast: false
     steps:
       - name: Checkout code
