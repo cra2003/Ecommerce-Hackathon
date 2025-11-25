@@ -21,14 +21,7 @@ describe('Fulfillment Service', () => {
 			const kv = null; // No KV for this test
 			const skuId = null;
 
-			const result = await fulfillmentService.allocateQuantityAcrossWarehouses(
-				priorityWarehouses,
-				inventoryMap,
-				'10',
-				8,
-				kv,
-				skuId,
-			);
+			const result = await fulfillmentService.allocateQuantityAcrossWarehouses(priorityWarehouses, inventoryMap, '10', 8, kv, skuId);
 
 			expect(result.allocations).to.be.an('array');
 			expect(result.remainingQuantity).to.equal(0);
@@ -40,14 +33,7 @@ describe('Fulfillment Service', () => {
 				wh1: { stock_for_size: 5, express_available: false },
 			};
 
-			const result = await fulfillmentService.allocateQuantityAcrossWarehouses(
-				priorityWarehouses,
-				inventoryMap,
-				'10',
-				10,
-				null,
-				null,
-			);
+			const result = await fulfillmentService.allocateQuantityAcrossWarehouses(priorityWarehouses, inventoryMap, '10', 10, null, null);
 
 			expect(result.remainingQuantity).to.be.greaterThan(0);
 		});
@@ -67,14 +53,7 @@ describe('Fulfillment Service', () => {
 			kv.get.withArgs('lock:wh1:P0001-10', { type: 'json' }).resolves({ user1: 3 });
 			kv.get.resolves({ user1: 3 }); // Fallback for any other calls
 
-			const result = await fulfillmentService.allocateQuantityAcrossWarehouses(
-				priorityWarehouses,
-				inventoryMap,
-				'10',
-				5,
-				kv,
-				'P0001-10',
-			);
+			const result = await fulfillmentService.allocateQuantityAcrossWarehouses(priorityWarehouses, inventoryMap, '10', 5, kv, 'P0001-10');
 
 			expect(kv.get.called).to.be.true;
 			expect(result.allocations.length).to.be.greaterThan(0);

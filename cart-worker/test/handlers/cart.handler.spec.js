@@ -46,15 +46,16 @@ describe('Cart Handler', () => {
 		it('should add product to cart successfully', async () => {
 			c.req.json.resolves({ product_id: 'prod123', size: '10', quantity: 1 });
 
-			const mockProduct = { product_id: 'prod123', sku: 'SKU123', name: 'Test Product', primary_image_url: 'https://example.com/image.jpg' };
+			const mockProduct = {
+				product_id: 'prod123',
+				sku: 'SKU123',
+				name: 'Test Product',
+				primary_image_url: 'https://example.com/image.jpg',
+			};
 			const mockPrice = { success: true, price: 1000, currency: 'INR' };
 
-			c.env.PRODUCTS_SERVICE.fetch.resolves(
-				new Response(JSON.stringify(mockProduct), { status: 200 }),
-			);
-			c.env.PRICE_SERVICE.fetch.resolves(
-				new Response(JSON.stringify(mockPrice), { status: 200 }),
-			);
+			c.env.PRODUCTS_SERVICE.fetch.resolves(new Response(JSON.stringify(mockProduct), { status: 200 }));
+			c.env.PRICE_SERVICE.fetch.resolves(new Response(JSON.stringify(mockPrice), { status: 200 }));
 
 			// Mock getOrCreateCart
 			const mockCart = { cart_id: 'cart_123', products: '[]' };
@@ -95,9 +96,7 @@ describe('Cart Handler', () => {
 			const mockCart = {
 				cart_id: 'cart_123',
 				user_id: null,
-				products: JSON.stringify([
-					{ product_id: 'prod123', size: '10', quantity: 1, price: 1000 },
-				]),
+				products: JSON.stringify([{ product_id: 'prod123', size: '10', quantity: 1, price: 1000 }]),
 				address: null,
 				status: 'active',
 				created_at: '2025-01-01T00:00:00Z',

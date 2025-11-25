@@ -80,4 +80,3 @@ describe('Filters Handler', () => {
 		});
 	});
 });
-

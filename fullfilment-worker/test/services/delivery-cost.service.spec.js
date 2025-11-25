@@ -16,9 +16,7 @@ describe('Delivery Cost Service', () => {
 
 	describe('getDeliveryCostsForTiers', () => {
 		it('should return delivery costs for tiers', async () => {
-			const mockCosts = [
-				{ tier_name: 'Tier1', standard_delivery_cost: 50 },
-			];
+			const mockCosts = [{ tier_name: 'Tier1', standard_delivery_cost: 50 }];
 			db.prepare.returns({
 				bind: sandbox.stub().returns({
 					all: sandbox.stub().resolves({ results: mockCosts }),
@@ -32,4 +30,3 @@ describe('Delivery Cost Service', () => {
 		});
 	});
 });
-

@@ -35,4 +35,3 @@ describe('Stock Restore Handler', () => {
 		});
 	});
 });
-

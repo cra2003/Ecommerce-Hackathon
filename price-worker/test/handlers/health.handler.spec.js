@@ -83,4 +83,3 @@ describe('Health Handler', () => {
 		});
 	});
 });
-

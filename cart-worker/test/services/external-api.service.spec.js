@@ -40,9 +40,7 @@ describe('External API Service', () => {
 
 	describe('fetchPrice', () => {
 		it('should fetch price from price service using service binding', async () => {
-			c.env.PRICE_SERVICE.fetch.resolves(
-				new Response(JSON.stringify({ success: true, price: 1000, currency: 'INR' }), { status: 200 }),
-			);
+			c.env.PRICE_SERVICE.fetch.resolves(new Response(JSON.stringify({ success: true, price: 1000, currency: 'INR' }), { status: 200 }));
 
 			const result = await externalApiService.fetchPrice(c, 'SKU123', 'prod123');
 
@@ -54,9 +52,7 @@ describe('External API Service', () => {
 
 	describe('checkStock', () => {
 		it('should check stock from fulfillment service using service binding', async () => {
-			c.env.FULFILLMENT_SERVICE.fetch.resolves(
-				new Response(JSON.stringify({ success: true, total_stock: 5 }), { status: 200 }),
-			);
+			c.env.FULFILLMENT_SERVICE.fetch.resolves(new Response(JSON.stringify({ success: true, total_stock: 5 }), { status: 200 }));
 
 			const result = await externalApiService.checkStock(c, 'prod123', '10');
 
@@ -81,9 +77,7 @@ describe('External API Service', () => {
 
 	describe('deductStock', () => {
 		it('should deduct stock from fulfillment service using service binding', async () => {
-			c.env.FULFILLMENT_SERVICE.fetch.resolves(
-				new Response(JSON.stringify({ success: true }), { status: 200 }),
-			);
+			c.env.FULFILLMENT_SERVICE.fetch.resolves(new Response(JSON.stringify({ success: true }), { status: 200 }));
 
 			const payload = { warehouse_id: 'WH1', product_id: 'prod123', size: '10', quantity: 1 };
 			const result = await externalApiService.deductStock(c, payload);
@@ -95,9 +89,7 @@ describe('External API Service', () => {
 
 	describe('restoreStock', () => {
 		it('should restore stock from fulfillment service using service binding', async () => {
-			c.env.FULFILLMENT_SERVICE.fetch.resolves(
-				new Response(JSON.stringify({ success: true }), { status: 200 }),
-			);
+			c.env.FULFILLMENT_SERVICE.fetch.resolves(new Response(JSON.stringify({ success: true }), { status: 200 }));
 
 			const payload = { warehouse_id: 'WH1', product_id: 'prod123', size: '10', quantity: 1 };
 			const result = await externalApiService.restoreStock(c, payload);
@@ -109,9 +101,7 @@ describe('External API Service', () => {
 
 	describe('acquireLocks', () => {
 		it('should acquire locks from fulfillment service using service binding', async () => {
-			c.env.FULFILLMENT_SERVICE.fetch.resolves(
-				new Response(JSON.stringify({ success: true, locked: 2 }), { status: 200 }),
-			);
+			c.env.FULFILLMENT_SERVICE.fetch.resolves(new Response(JSON.stringify({ success: true, locked: 2 }), { status: 200 }));
 
 			const allocations = [{ warehouse_id: 'WH1', sku: 'SKU123', allocated_quantity: 1 }];
 			const result = await externalApiService.acquireLocks(c, allocations, 'user123', null);
@@ -123,9 +113,7 @@ describe('External API Service', () => {
 
 	describe('releaseLocks', () => {
 		it('should release locks from fulfillment service using service binding', async () => {
-			c.env.FULFILLMENT_SERVICE.fetch.resolves(
-				new Response(JSON.stringify({ success: true, released: 2 }), { status: 200 }),
-			);
+			c.env.FULFILLMENT_SERVICE.fetch.resolves(new Response(JSON.stringify({ success: true, released: 2 }), { status: 200 }));
 
 			const allocations = [{ warehouse_id: 'WH1', sku: 'SKU123', allocated_quantity: 1 }];
 			const result = await externalApiService.releaseLocks(c, allocations, 'user123', null);

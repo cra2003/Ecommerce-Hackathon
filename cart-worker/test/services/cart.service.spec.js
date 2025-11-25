@@ -54,15 +54,16 @@ describe('Cart Service', () => {
 		it('should add product to cart successfully', async () => {
 			c.req.json.resolves({ product_id: 'prod123', size: '10', quantity: 1 });
 
-			const mockProduct = { product_id: 'prod123', sku: 'SKU123', name: 'Test Product', primary_image_url: 'https://example.com/image.jpg' };
+			const mockProduct = {
+				product_id: 'prod123',
+				sku: 'SKU123',
+				name: 'Test Product',
+				primary_image_url: 'https://example.com/image.jpg',
+			};
 			const mockPrice = { success: true, price: 1000, currency: 'INR' };
 
-			c.env.PRODUCTS_SERVICE.fetch.resolves(
-				new Response(JSON.stringify(mockProduct), { status: 200 }),
-			);
-			c.env.PRICE_SERVICE.fetch.resolves(
-				new Response(JSON.stringify(mockPrice), { status: 200 }),
-			);
+			c.env.PRODUCTS_SERVICE.fetch.resolves(new Response(JSON.stringify(mockProduct), { status: 200 }));
+			c.env.PRICE_SERVICE.fetch.resolves(new Response(JSON.stringify(mockPrice), { status: 200 }));
 
 			// Mock getOrCreateCart - no existing cart, create new one
 			const mockCart = { cart_id: 'cart_123', products: '[]' };
@@ -123,9 +124,7 @@ describe('Cart Service', () => {
 
 		it('should return error when product not found', async () => {
 			c.req.json.resolves({ product_id: 'prod123', size: '10', quantity: 1 });
-			c.env.PRODUCTS_SERVICE.fetch.resolves(
-				new Response(JSON.stringify({ product_id: 'prod123' }), { status: 200 }),
-			);
+			c.env.PRODUCTS_SERVICE.fetch.resolves(new Response(JSON.stringify({ product_id: 'prod123' }), { status: 200 }));
 
 			const result = await cartService.addProductToCart(c);
 
@@ -135,9 +134,7 @@ describe('Cart Service', () => {
 		it('should return error when price fetch fails', async () => {
 			c.req.json.resolves({ product_id: 'prod123', size: '10', quantity: 1 });
 			const mockProduct = { product_id: 'prod123', sku: 'SKU123', name: 'Test Product' };
-			c.env.PRODUCTS_SERVICE.fetch.resolves(
-				new Response(JSON.stringify(mockProduct), { status: 200 }),
-			);
+			c.env.PRODUCTS_SERVICE.fetch.resolves(new Response(JSON.stringify(mockProduct), { status: 200 }));
 			c.env.PRICE_SERVICE.fetch.rejects(new Error('Price fetch failed'));
 
 			const result = await cartService.addProductToCart(c);
@@ -147,19 +144,20 @@ describe('Cart Service', () => {
 
 		it('should update existing item quantity when item already in cart', async () => {
 			c.req.json.resolves({ product_id: 'prod123', size: '10', quantity: 2 });
-			const mockProduct = { product_id: 'prod123', sku: 'SKU123', name: 'Test Product', primary_image_url: 'https://example.com/image.jpg' };
+			const mockProduct = {
+				product_id: 'prod123',
+				sku: 'SKU123',
+				name: 'Test Product',
+				primary_image_url: 'https://example.com/image.jpg',
+			};
 			const mockPrice = { success: true, price: 1000, currency: 'INR' };
 			const existingCart = {
 				cart_id: 'cart_123',
 				products: JSON.stringify([{ product_id: 'prod123', size: '10', quantity: 1, price: 1000 }]),
 			};
 
-			c.env.PRODUCTS_SERVICE.fetch.resolves(
-				new Response(JSON.stringify(mockProduct), { status: 200 }),
-			);
-			c.env.PRICE_SERVICE.fetch.resolves(
-				new Response(JSON.stringify(mockPrice), { status: 200 }),
-			);
+			c.env.PRODUCTS_SERVICE.fetch.resolves(new Response(JSON.stringify(mockProduct), { status: 200 }));
+			c.env.PRICE_SERVICE.fetch.resolves(new Response(JSON.stringify(mockPrice), { status: 200 }));
 			c.env.DB.prepare.onCall(0).returns({
 				bind: sandbox.stub().returns({
 					first: sandbox.stub().resolves(existingCart),
@@ -267,7 +265,10 @@ describe('Cart Service', () => {
 
 	describe('verifyStock', () => {
 		it('should verify stock for cart items', async () => {
-			const mockCart = { cart_id: 'cart_123', products: JSON.stringify([{ product_id: 'prod123', size: '10', quantity: 1, sku: 'SKU123', name: 'Test' }]) };
+			const mockCart = {
+				cart_id: 'cart_123',
+				products: JSON.stringify([{ product_id: 'prod123', size: '10', quantity: 1, sku: 'SKU123', name: 'Test' }]),
+			};
 			c.env.CACHE.get.resolves(null);
 			c.env.DB.prepare.onCall(0).returns({
 				bind: sandbox.stub().returns({
@@ -277,9 +278,7 @@ describe('Cart Service', () => {
 			c.env.DB.prepare.onCall(1).returns({
 				all: sandbox.stub().resolves({ results: [] }),
 			});
-			c.env.FULFILLMENT_SERVICE.fetch.resolves(
-				new Response(JSON.stringify({ success: true, total_stock: 5 }), { status: 200 }),
-			);
+			c.env.FULFILLMENT_SERVICE.fetch.resolves(new Response(JSON.stringify({ success: true, total_stock: 5 }), { status: 200 }));
 
 			await cartService.verifyStock(c);
 
@@ -427,11 +426,11 @@ describe('Cart Service', () => {
 				}),
 			});
 			c.env.FULFILLMENT_SERVICE.fetch.resolves(
-				new Response(JSON.stringify({ success: true, fulfillment: { allocations: [] }, delivery: { highest_tier: 'tier_1' } }), { status: 200 }),
+				new Response(JSON.stringify({ success: true, fulfillment: { allocations: [] }, delivery: { highest_tier: 'tier_1' } }), {
+					status: 200,
+				}),
 			);
-			c.env.ORDER_SERVICE.fetch.resolves(
-				new Response(JSON.stringify({ success: true }), { status: 200 }),
-			);
+			c.env.ORDER_SERVICE.fetch.resolves(new Response(JSON.stringify({ success: true }), { status: 200 }));
 			c.env.DB.prepare.onCall(1).returns({
 				bind: sandbox.stub().returns({
 					run: sandbox.stub().resolves(),

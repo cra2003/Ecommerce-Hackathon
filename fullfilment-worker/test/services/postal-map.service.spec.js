@@ -16,9 +16,7 @@ describe('Postal Map Service', () => {
 
 	describe('getAllPostalMappings', () => {
 		it('should return all postal mappings', async () => {
-			const mockMappings = [
-				{ start_postal_code: '100001', end_postal_code: '100099', warehouses: '["wh_001"]' },
-			];
+			const mockMappings = [{ start_postal_code: '100001', end_postal_code: '100099', warehouses: '["wh_001"]' }];
 			db.prepare.returns({
 				all: sandbox.stub().resolves({ results: mockMappings }),
 			});
@@ -30,4 +28,3 @@ describe('Postal Map Service', () => {
 		});
 	});
 });
-
