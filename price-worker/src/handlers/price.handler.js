@@ -9,6 +9,9 @@ import { getPrice } from '../services/price.service.js';
  * Includes discount_percentage if available
  */
 export async function getPriceHandler(c) {
+	if (c.req.addTraceLog) {
+		c.req.addTraceLog('Handling price request');
+	}
 	const sku = c.req.param('sku');
 	const productId = c.req.query('product_id');
 

@@ -8,6 +8,7 @@ export async function getPayPalAccessToken(env) {
 	const clientId = env.PAYPAL_CLIENT_ID;
 	const clientSecret = env.PAYPAL_CLIENT_SECRET;
 	if (!clientId || !clientSecret) {
+		// Note: addTraceLog is not available in this pure function context
 		throw new Error('PayPal credentials not configured');
 	}
 

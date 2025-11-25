@@ -1,7 +1,6 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 import * as fulfillmentService from '../../src/services/fulfillment.service.js';
-import * as lockService from '../../src/services/inventory-lock.service.js';
 
 describe('Fulfillment Service', () => {
 	let sandbox;
@@ -45,15 +44,21 @@ describe('Fulfillment Service', () => {
 				wh1: { stock_for_size: 10, express_available: true },
 			};
 			const kv = {
-				get: sandbox.stub().resolves(JSON.stringify({ user1: 3 })),
+				get: sandbox.stub(),
 			};
 
-			sandbox.stub(lockService, 'getLockedQuantity').resolves(3);
+			// Stub KV to return locked quantity data
+			// getLockedQuantity internally calls kv.get with { type: 'json' }
+			// So we stub kv.get to return the parsed object
+			kv.get.withArgs('lock:wh1:P0001-10', { type: 'json' }).resolves({ user1: 3 });
+			kv.get.resolves({ user1: 3 }); // Fallback for any other calls
 
 			const result = await fulfillmentService.allocateQuantityAcrossWarehouses(priorityWarehouses, inventoryMap, '10', 5, kv, 'P0001-10');
 
-			expect(lockService.getLockedQuantity.calledOnce).to.be.true;
+			expect(kv.get.called).to.be.true;
 			expect(result.allocations.length).to.be.greaterThan(0);
+			// Available stock should be 10 - 3 = 7, so 5 should fit
+			expect(result.remainingQuantity).to.equal(0);
 		});
 	});
 

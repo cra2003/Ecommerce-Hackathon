@@ -26,9 +26,15 @@ import { getCartIdentifier } from '../utils/cart.util.js';
 // =============== 1️⃣ ADD PRODUCT TO CART ==================
 export async function addProductToCart(c) {
 	try {
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Adding product to cart');
+		}
 		const { product_id, size, quantity } = await c.req.json();
 		const cartInfo = getCartIdentifier(c);
 		const { user_id, guest_session_id, cacheKey } = cartInfo;
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Product: ${product_id}, Size: ${size}, Quantity: ${quantity}`);
+		}
 
 		await logEvent(c.env, 'cart_add_attempt', {
 			user_id: user_id || null,
@@ -40,9 +46,15 @@ export async function addProductToCart(c) {
 
 		// Validation
 		if (!product_id) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Validation failed: Missing product_id');
+			}
 			return c.json({ success: false, error: 'Missing product_id' }, 400);
 		}
 		if (!size) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Validation failed: Missing size');
+			}
 			return c.json({ success: false, error: 'Missing size' }, 400);
 		}
 		const qty = Number(quantity ?? 1);
@@ -51,12 +63,21 @@ export async function addProductToCart(c) {
 		}
 
 		// Fetch product details from product-worker
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Fetching product details for: ${product_id}`);
+		}
 		const product = await fetchProduct(c, product_id);
 		if (!product || !product.sku) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Product not found');
+			}
 			return c.json({ success: false, error: 'Product not found' }, 404);
 		}
 
 		// Fetch price from price-worker
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Fetching price for SKU: ${product.sku}`);
+		}
 		let priceData = null;
 		try {
 			priceData = await fetchPrice(c, product.sku, product_id);
@@ -104,10 +125,16 @@ export async function addProductToCart(c) {
 
 		// Update cart in database
 		const productsJson = JSON.stringify(products);
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Updating cart: ${cart.cart_id}`);
+		}
 		await updateCartProducts(c.env.DB, cart.cart_id, productsJson);
 
 		// Invalidate cache
 		await invalidateCache(c, [cacheKey]);
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Product added to cart successfully');
+		}
 
 		await logEvent(c.env, 'cart_item_added', {
 			user_id: user_id || null,
@@ -145,12 +172,18 @@ export async function addProductToCart(c) {
 // =============== 2️⃣ VIEW CART ==================
 export async function viewCart(c) {
 	try {
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Fetching cart');
+		}
 		const cartInfo = getCartIdentifier(c);
 		const { user_id, guest_session_id, cacheKey } = cartInfo;
 
 		// Try cache first
 		const cached = await getCached(c, cacheKey);
 		if (cached) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Cart found in cache');
+			}
 			await logEvent(c.env, 'cart_view', {
 				user_id: user_id || null,
 				guest_session_id: guest_session_id || null,
@@ -169,6 +202,9 @@ export async function viewCart(c) {
 		console.log('[viewCart] Cart lookup result:', { found: !!cart, cart_id: cart?.cart_id || null });
 
 		if (!cart) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Cart not found');
+			}
 			await logEvent(c.env, 'cart_view', {
 				user_id: user_id || null,
 				guest_session_id: guest_session_id || null,
@@ -199,6 +235,9 @@ export async function viewCart(c) {
 
 		// Cache for 3 minutes
 		await setCached(c, cacheKey, payload, 180);
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Cart retrieved: ${products.length} item(s), Subtotal: ${subtotal}`);
+		}
 
 		await logEvent(c.env, 'cart_view', {
 			user_id: user_id || null,
@@ -229,6 +268,9 @@ export async function viewCart(c) {
 // =============== 3️⃣ VERIFY STOCK ==================
 export async function verifyStock(c) {
 	try {
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Verifying stock for cart items');
+		}
 		const cartInfo = getCartIdentifier(c);
 		const { user_id, guest_session_id, cacheKey } = cartInfo;
 
@@ -273,6 +315,9 @@ export async function verifyStock(c) {
 		});
 
 		if (products.length === 0) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Cart is empty, no stock verification needed');
+			}
 			console.log('[verifyStock] WARNING: Products array is empty!');
 			console.log('[verifyStock] Cart data:', {
 				cart_id: cart?.cart_id || null,
@@ -380,6 +425,9 @@ export async function verifyStock(c) {
 		});
 
 		if (errors.length > 0) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog(`Stock verification failed: ${errors.length} item(s) out of stock`);
+			}
 			return c.json(
 				{
 					success: false,
@@ -388,6 +436,10 @@ export async function verifyStock(c) {
 				},
 				400,
 			);
+		}
+
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('All items verified in stock');
 		}
 
 		return c.json({
@@ -635,6 +687,9 @@ export async function incrementQuantity(c) {
 		if (cacheKey) {
 			await invalidateCache(c, [cacheKey]);
 		}
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Quantity incremented: ${products[itemIndex].quantity}`);
+		}
 		await logEvent(c.env, 'cart_quantity_incremented', {
 			user_id: user_id || null,
 			guest_session_id: guest_session_id || null,
@@ -664,9 +719,15 @@ export async function incrementQuantity(c) {
 // =============== 3.1.6️⃣ DECREMENT QUANTITY ==================
 export async function decrementQuantity(c) {
 	try {
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Decrementing cart item quantity');
+		}
 		const cartInfo = getCartIdentifier(c);
 		const { user_id, guest_session_id, cacheKey } = cartInfo;
 		const { product_id, size } = await c.req.json();
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Product: ${product_id}, Size: ${size}`);
+		}
 
 		await logEvent(c.env, 'cart_decrement_attempt', {
 			user_id: user_id || null,
@@ -718,6 +779,9 @@ export async function decrementQuantity(c) {
 			await updateCartProducts(c.env.DB, cart.cart_id, JSON.stringify(products));
 			if (cacheKey) {
 				await invalidateCache(c, [cacheKey]);
+			}
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog(`Quantity decremented: ${products[itemIndex]?.quantity || 0}`);
 			}
 			await logEvent(c.env, 'cart_quantity_decremented', {
 				user_id: user_id || null,
@@ -1169,6 +1233,9 @@ export async function placeOrder(c) {
 	let guest_session_id = null;
 
 	try {
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Starting order placement');
+		}
 		const cartInfo = getCartIdentifier(c);
 		user_id = cartInfo.user_id;
 		guest_session_id = cartInfo.guest_session_id;
@@ -1177,6 +1244,9 @@ export async function placeOrder(c) {
 		const mode = delivery_mode === 'express' ? 'express' : 'standard';
 		// payment_status can be 'paid' (for PayPal) or 'pending' (for COD), default to 'pending'
 		const payStatus = payment_status === 'paid' ? 'paid' : 'pending';
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Order mode: ${mode}, Payment status: ${payStatus}`);
+		}
 
 		await logEvent(c.env, 'place_order_attempt', {
 			user_id: user_id || null,
@@ -1210,8 +1280,22 @@ export async function placeOrder(c) {
 		const products = parseJSON(cart.products, []);
 		const address = cart.address ? parseJSON(cart.address, null) : null;
 
-		if (!products.length) return c.json({ success: false, error: 'Cart is empty' }, 400);
-		if (!address?.postal_code) return c.json({ success: false, error: 'Shipping address not set' }, 400);
+		if (!products.length) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Order placement failed: Cart is empty');
+			}
+			return c.json({ success: false, error: 'Cart is empty' }, 400);
+		}
+		if (!address?.postal_code) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Order placement failed: Shipping address not set');
+			}
+			return c.json({ success: false, error: 'Shipping address not set' }, 400);
+		}
+
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Verifying stock and allocations for ${products.length} item(s)`);
+		}
 
 		// 1) Re-verify stock and fetch allocations for each item
 		const verifiedItems = [];
@@ -1292,11 +1376,17 @@ export async function placeOrder(c) {
 		}
 
 		if (allAllocations.length > 0) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog(`Acquiring inventory locks for ${allAllocations.length} allocation(s)`);
+			}
 			console.log(`[place-order] 🔒 Acquiring locks for ${allAllocations.length} allocations`);
 			const lockRes = await acquireLocks(c, allAllocations, user_id, guest_session_id);
 			const lockResult = await lockRes.json().catch(() => ({}));
 
 			if (!lockRes.ok || !lockResult?.success) {
+				if (c.req.addTraceLog) {
+					c.req.addTraceLog('Failed to acquire inventory locks');
+				}
 				console.error(`[place-order] ❌ Failed to acquire locks:`, lockResult);
 				return c.json(
 					{
@@ -1309,11 +1399,17 @@ export async function placeOrder(c) {
 
 			locksAcquired = true;
 			acquiredLockAllocations = allAllocations;
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog(`Successfully acquired ${lockResult.locked || 0} inventory lock(s)`);
+			}
 			console.log(`[place-order] ✅ Successfully acquired ${lockResult.locked || 0} locks`);
 		}
 
 		// 4) Create order via orders-worker (internal)
 		const order_id = `ord_${generateUUID().substring(0, 12)}`;
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Creating order: ${order_id}, Total: ${total}`);
+		}
 		const orderPayload = {
 			order_id,
 			user_id: user_id || null,
@@ -1381,7 +1477,14 @@ export async function placeOrder(c) {
 			return c.json({ success: false, error: created?.error || 'Order create failed' }, 500);
 		}
 
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Order created successfully: ${order_id}`);
+		}
+
 		// 5) Deduct stock per allocation (atomic with rollback on failure)
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Deducting stock from warehouses');
+		}
 		const successfulDeductions = [];
 		for (const item of verifiedItems) {
 			const allocations = item.fulfillment?.allocations || [];
@@ -1461,6 +1564,9 @@ export async function placeOrder(c) {
 
 		// 7) Mark cart as converted after successful deductions
 		await markCartAsConverted(c.env.DB, cart.cart_id);
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Order placed successfully: ${order_id}, Total: ${total}`);
+		}
 
 		// Invalidate cache using cacheKey
 		const keysToInvalidate = [];

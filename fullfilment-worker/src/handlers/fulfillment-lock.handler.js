@@ -24,10 +24,16 @@ import { logEvent, logError } from '../services/log.service.js';
 export async function fulfillmentLockHandler(c) {
 	let body = {};
 	try {
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Acquiring inventory locks');
+		}
 		body = await c.req.json();
 		// Support both user_id and guest_session_id (can be guest_session_id for guest users)
 		const { allocations, user_id, guest_session_id } = body;
 		const identifier = user_id || guest_session_id; // Use either user_id or guest_session_id
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Identifier: ${identifier}, Allocations: ${allocations?.length || 0}`);
+		}
 
 		console.log(
 			`[fulfillment-lock] START: identifier=${identifier} (user_id=${user_id || 'null'}, guest_session_id=${guest_session_id || 'null'}), allocations=${allocations?.length || 0}`,
@@ -119,6 +125,9 @@ export async function fulfillmentLockHandler(c) {
 
 		// Check if all locks were acquired successfully
 		if (errors.length > 0) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog(`Failed to acquire ${errors.length} out of ${allocations.length} locks`);
+			}
 			console.error(`[fulfillment-lock] ERROR: Failed to acquire ${errors.length} out of ${allocations.length} locks`);
 
 			// Release any locks that were successfully acquired
@@ -149,6 +158,9 @@ export async function fulfillmentLockHandler(c) {
 		}
 
 		console.log(`[fulfillment-lock] SUCCESS: Acquired ${lockResults.length} locks for ${user_id ? 'user' : 'guest'} ${identifier}`);
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Successfully acquired ${lockResults.length} inventory lock(s)`);
+		}
 
 		await logEvent(c.env, 'fulfillment_lock_success', {
 			user_id: user_id || null,
@@ -206,10 +218,16 @@ export async function fulfillmentLockHandler(c) {
 export async function fulfillmentUnlockHandler(c) {
 	let body = {};
 	try {
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Releasing inventory locks');
+		}
 		body = await c.req.json();
 		// Support both user_id and guest_session_id (can be guest_session_id for guest users)
 		const { allocations, user_id, guest_session_id } = body;
 		const identifier = user_id || guest_session_id; // Use either user_id or guest_session_id
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Identifier: ${identifier}, Allocations: ${allocations?.length || 0}`);
+		}
 
 		console.log(
 			`[fulfillment-unlock] START: identifier=${identifier} (user_id=${user_id || 'null'}, guest_session_id=${guest_session_id || 'null'}), allocations=${allocations?.length || 0}`,
@@ -287,6 +305,9 @@ export async function fulfillmentUnlockHandler(c) {
 		}
 
 		console.log(`[fulfillment-unlock] SUCCESS: Released ${releaseResult.released} locks for ${user_id ? 'user' : 'guest'} ${identifier}`);
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Successfully released ${releaseResult.released} inventory lock(s)`);
+		}
 
 		await logEvent(c.env, 'fulfillment_unlock_success', {
 			user_id: user_id || null,

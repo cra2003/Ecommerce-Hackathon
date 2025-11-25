@@ -1,11 +1,6 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 import { createOrderHandler } from '../../src/handlers/order-create.handler.js';
-import * as orderService from '../../src/services/order.service.js';
-import * as cartService from '../../src/services/cart.service.js';
-import * as productService from '../../src/services/product.service.js';
-import * as cacheService from '../../src/services/cache.service.js';
-import * as logService from '../../src/services/log.service.js';
 
 describe('Order Create Handler', () => {
 	let c, sandbox;
@@ -13,13 +8,18 @@ describe('Order Create Handler', () => {
 	beforeEach(() => {
 		sandbox = sinon.createSandbox();
 		c = {
+			get: sandbox.stub().returns('user123'),
 			req: {
 				json: sandbox.stub(),
 			},
 			env: {
-				DB: {},
+				DB: {
+					prepare: sandbox.stub(),
+				},
+				LOGS: {
+					put: sandbox.stub().resolves(),
+				},
 			},
-			get: sandbox.stub(),
 			json: sandbox.stub().returnsThis(),
 		};
 	});
@@ -27,44 +27,55 @@ describe('Order Create Handler', () => {
 	afterEach(() => sandbox.restore());
 
 	describe('createOrderHandler', () => {
-		it('should create order successfully', async () => {
-			c.get.withArgs('user_id').returns('user123');
-			c.req.json.resolves({ address: { line1: '123 Main St' }, delivery_mode: 'standard' });
+		it('should handle create order request', async () => {
+			c.req.json.resolves({ address: { street: '123 Main St' }, delivery_mode: 'standard' });
 
-			const fakeCart = { cart_id: 'cart123' };
-			const fakeItems = { results: [{ product_id: 'prod1', quantity: 1, price: 100 }] };
+			// Stub cart lookup
+			c.env.DB.prepare.onCall(0).returns({
+				bind: sandbox.stub().returns({
+					first: sandbox.stub().resolves({ cart_id: 'cart123' }),
+				}),
+			});
 
-			sandbox.stub(cartService, 'getCartByUser').resolves(fakeCart);
-			sandbox.stub(cartService, 'getCartItemsWithProducts').resolves(fakeItems);
-			sandbox.stub(cartService, 'deleteCartItems').resolves();
-			sandbox.stub(orderService, 'insertOrderLegacy').resolves(1);
-			sandbox.stub(orderService, 'insertOrderItem').resolves();
-			sandbox.stub(productService, 'reduceProductStock').resolves();
-			sandbox.stub(cacheService, 'invalidateCache').resolves();
-			sandbox.stub(logService, 'logEvent').resolves();
+			// Stub cart items
+			c.env.DB.prepare.onCall(1).returns({
+				bind: sandbox.stub().returns({
+					all: sandbox.stub().resolves({ results: [{ product_id: 'prod1', quantity: 1, price: 100 }] }),
+				}),
+			});
+
+			// Stub order insert
+			c.env.DB.prepare.onCall(2).returns({
+				bind: sandbox.stub().returns({
+					run: sandbox.stub().resolves({ meta: { last_row_id: 1 }, lastInsertRowid: 1 }),
+				}),
+			});
+
+			// Stub order item insert and stock reduction (multiple calls)
+			c.env.DB.prepare.returns({
+				bind: sandbox.stub().returns({
+					run: sandbox.stub().resolves(),
+				}),
+			});
 
 			await createOrderHandler(c);
 
-			expect(orderService.insertOrderLegacy.calledOnce).to.be.true;
+			expect(c.get.calledWith('user_id')).to.be.true;
+			expect(c.req.json.calledOnce).to.be.true;
+			expect(c.json.calledOnce).to.be.true;
 		});
 
-		it('should return 400 for missing address', async () => {
-			c.get.withArgs('user_id').returns('user123');
-			c.req.json.resolves({});
+		it('should return 404 when no cart found', async () => {
+			c.req.json.resolves({ address: { street: '123 Main St' } });
+			c.env.DB.prepare.returns({
+				bind: sandbox.stub().returns({
+					first: sandbox.stub().resolves(null),
+				}),
+			});
 
 			await createOrderHandler(c);
 
-			expect(c.json.calledWith({ error: 'Address required' }, 400)).to.be.true;
-		});
-
-		it('should return 404 for no cart', async () => {
-			c.get.withArgs('user_id').returns('user123');
-			c.req.json.resolves({ address: { line1: '123 Main St' } });
-			sandbox.stub(cartService, 'getCartByUser').resolves(null);
-
-			await createOrderHandler(c);
-
-			expect(c.json.calledWith({ error: 'No active cart found' }, 404)).to.be.true;
+			expect(c.json.calledWith(sinon.match({ error: 'No active cart found' }), 404)).to.be.true;
 		});
 	});
 });

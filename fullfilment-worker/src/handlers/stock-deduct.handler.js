@@ -10,7 +10,13 @@ import { logEvent, logError } from '../services/log.service.js';
 export async function stockDeductHandler(c) {
 	let warehouse_id, product_id, size, quantity;
 	try {
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Deducting stock from warehouse');
+		}
 		({ warehouse_id, product_id, size, quantity } = await c.req.json());
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Warehouse: ${warehouse_id}, Product: ${product_id}, Size: ${size}, Qty: ${quantity}`);
+		}
 
 		console.log(`[stock-deduct] START: warehouse=${warehouse_id}, product=${product_id}, size=${size}, qty=${quantity}`);
 
@@ -95,6 +101,9 @@ export async function stockDeductHandler(c) {
 
 		// Check if update succeeded (rows_written > 0 means stock hadn't changed)
 		if (!result.meta || result.meta.changes === 0) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Stock deduction failed: Race condition detected');
+			}
 			console.log(`[stock-deduct] ERROR: Stock changed during transaction (race condition detected)`);
 			return c.json(
 				{
@@ -109,6 +118,9 @@ export async function stockDeductHandler(c) {
 		console.log(
 			`[stock-deduct] SUCCESS: Stock deducted. Warehouse=${warehouse_id}, Product=${product_id}, Size=${size}, Deducted=${quantity}, Remaining=${newStock}`,
 		);
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Stock deducted successfully. Remaining: ${newStock}`);
+		}
 
 		await logEvent(c.env, 'stock_deducted', {
 			warehouse_id,

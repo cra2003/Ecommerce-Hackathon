@@ -6,6 +6,9 @@ import { logEvent, logError } from '../services/log.service.js';
 // Path chosen under /internal to discourage public use; expect service binding calls
 export async function internalOrderCreateHandler(c) {
 	try {
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Creating internal order');
+		}
 		// NOTE: This endpoint is intended to be called via a service binding from cart-worker.
 		// If you want to harden security, add a shared secret header check here.
 		const body = await c.req.json();
@@ -31,14 +34,23 @@ export async function internalOrderCreateHandler(c) {
 		const hasGuest = !!guest_session_id;
 
 		if (!order_id || !products || !address || !delivery_mode || !delivery_tier || total == null) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Validation failed: Missing required fields');
+			}
 			return c.json({ success: false, error: 'Missing required fields' }, 400);
 		}
 
 		if (!hasUser && !hasGuest) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Validation failed: Missing user_id or guest_session_id');
+			}
 			return c.json({ success: false, error: 'Missing required fields: user_id or guest_session_id required' }, 400);
 		}
 
 		if (hasUser && hasGuest) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Validation failed: Cannot have both user_id and guest_session_id');
+			}
 			return c.json({ success: false, error: 'Invalid request: cannot have both user_id and guest_session_id' }, 400);
 		}
 
@@ -50,6 +62,9 @@ export async function internalOrderCreateHandler(c) {
 			delivery_mode,
 		});
 
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Inserting order: ${order_id}, Total: ${total}, Mode: ${delivery_mode}`);
+		}
 		await insertOrder(c.env.DB, {
 			order_id,
 			user_id: user_id || null,
@@ -70,6 +85,9 @@ export async function internalOrderCreateHandler(c) {
 		// Invalidate cache for user or guest
 		if (user_id) {
 			await invalidateCache(c, [`orders:${user_id}`]);
+		}
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Order created successfully: ${order_id}`);
 		}
 
 		await logEvent(c.env, 'internal_order_created', {

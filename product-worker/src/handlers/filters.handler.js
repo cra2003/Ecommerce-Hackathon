@@ -4,6 +4,9 @@
  */
 export async function getFiltersHandler(c) {
 	try {
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Fetching filter options');
+		}
 		// Run all filter queries in parallel for speed
 		const [categories, brands, genders, targetAudiences, closureTypes, soleMaterials] = await Promise.all([
 			c.env.DB.prepare(
@@ -55,6 +58,10 @@ export async function getFiltersHandler(c) {
       `,
 			).all(),
 		]);
+
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Filter options fetched successfully');
+		}
 
 		return c.json({
 			success: true,

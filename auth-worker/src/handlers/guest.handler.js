@@ -11,10 +11,16 @@ import { createCookieHeader } from '../utils/cookie.util.js';
  */
 export async function initGuestSession(c) {
 	try {
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Initializing guest session');
+		}
 		const { name, email, phone } = await c.req.json();
 
 		// Validate required fields (at least name and email recommended)
 		if (!name || !email) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Guest session initialization failed: Missing required fields');
+			}
 			return c.json(
 				{
 					success: false,
@@ -26,6 +32,9 @@ export async function initGuestSession(c) {
 
 		// Generate guest session ID
 		const guestSessionId = crypto.randomUUID();
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Generated guest_session_id: ${guestSessionId}`);
+		}
 
 		// Set expiry to 6 hours from now
 		const expiresAt = new Date();
@@ -49,6 +58,10 @@ export async function initGuestSession(c) {
 			httpOnly: false, // Changed to false so frontend can read it
 			sameSite: 'Lax',
 		});
+
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Guest session initialized successfully');
+		}
 
 		// Return success with Set-Cookie header
 		return c.json(

@@ -1,7 +1,6 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 import { addProductHandler, viewCartHandler } from '../../src/handlers/cart.handler.js';
-import * as cartService from '../../src/services/cart.service.js';
 
 describe('Cart Handler', () => {
 	let c, sandbox;
@@ -11,67 +10,127 @@ describe('Cart Handler', () => {
 		c = {
 			req: {
 				json: sandbox.stub(),
-				raw: {
-					headers: new Headers(),
-				},
+				param: sandbox.stub(),
+				header: sandbox.stub(),
+				addTraceLog: sandbox.stub(),
 			},
 			env: {
-				DB: {},
-				PRODUCTS_SERVICE: null,
+				DB: {
+					prepare: sandbox.stub(),
+				},
+				CACHE: {
+					get: sandbox.stub(),
+					put: sandbox.stub(),
+					delete: sandbox.stub(),
+				},
+				PRODUCTS_SERVICE: {
+					fetch: sandbox.stub(),
+				},
+				PRICE_SERVICE: {
+					fetch: sandbox.stub(),
+				},
+				LOGS: {
+					put: sandbox.stub(),
+				},
 			},
 			get: sandbox.stub(),
-			set: sandbox.stub(),
 			json: sandbox.stub().returnsThis(),
 		};
+		c.get.withArgs('user_id').returns(null);
+		c.get.withArgs('guest_session_id').returns('guest-session-123');
 	});
 
 	afterEach(() => sandbox.restore());
 
 	describe('addProductHandler', () => {
 		it('should add product to cart successfully', async () => {
-			const productData = { product_id: 'prod123', size: '10', quantity: 1 };
-			c.req.json.resolves(productData);
-			c.get.withArgs('user_id').returns('user123');
-			c.get.withArgs('guest_session_id').returns(null);
+			c.req.json.resolves({ product_id: 'prod123', size: '10', quantity: 1 });
 
-			const fakeResponse = { success: true, cart: { products: [productData] } };
-			sandbox.stub(cartService, 'addProductToCart').resolves(c.json(fakeResponse));
+			const mockProduct = {
+				product_id: 'prod123',
+				sku: 'SKU123',
+				name: 'Test Product',
+				primary_image_url: 'https://example.com/image.jpg',
+			};
+			const mockPrice = { success: true, price: 1000, currency: 'INR' };
 
-			await addProductHandler(c);
+			c.env.PRODUCTS_SERVICE.fetch.resolves(new Response(JSON.stringify(mockProduct), { status: 200 }));
+			c.env.PRICE_SERVICE.fetch.resolves(new Response(JSON.stringify(mockPrice), { status: 200 }));
 
-			expect(cartService.addProductToCart.calledOnce).to.be.true;
-		});
+			// Mock getOrCreateCart
+			const mockCart = { cart_id: 'cart_123', products: '[]' };
+			c.env.DB.prepare.onCall(0).returns({
+				bind: sandbox.stub().returns({
+					first: sandbox.stub().resolves(null), // No existing cart
+				}),
+			});
+			c.env.DB.prepare.onCall(1).returns({
+				bind: sandbox.stub().returns({
+					run: sandbox.stub().resolves(), // Insert cart
+				}),
+			});
+			c.env.DB.prepare.onCall(2).returns({
+				bind: sandbox.stub().returns({
+					first: sandbox.stub().resolves(mockCart), // Get created cart
+				}),
+			});
+			c.env.DB.prepare.onCall(3).returns({
+				bind: sandbox.stub().returns({
+					run: sandbox.stub().resolves(), // Update cart products
+				}),
+			});
 
-		it('should handle missing product data', async () => {
-			c.req.json.resolves({});
-			sandbox.stub(cartService, 'addProductToCart').resolves(c.json({ success: false, error: 'Missing product_id' }, 400));
+			const result = await addProductHandler(c);
 
-			await addProductHandler(c);
-
-			expect(cartService.addProductToCart.calledOnce).to.be.true;
+			expect(c.env.PRODUCTS_SERVICE.fetch.calledOnce).to.be.true;
+			expect(c.env.PRICE_SERVICE.fetch.calledOnce).to.be.true;
+			expect(c.json.calledOnce).to.be.true;
+			const responseArg = c.json.firstCall.args[0];
+			expect(responseArg.success).to.be.true;
+			expect(responseArg.product.product_id).to.equal('prod123');
 		});
 	});
 
 	describe('viewCartHandler', () => {
-		it('should return cart successfully', async () => {
-			c.get.withArgs('user_id').returns('user123');
-			c.get.withArgs('guest_session_id').returns(null);
+		it('should return cart data successfully', async () => {
+			const mockCart = {
+				cart_id: 'cart_123',
+				user_id: null,
+				products: JSON.stringify([{ product_id: 'prod123', size: '10', quantity: 1, price: 1000 }]),
+				address: null,
+				status: 'active',
+				created_at: '2025-01-01T00:00:00Z',
+				updated_at: '2025-01-01T00:00:00Z',
+			};
 
-			const fakeCart = { cart_id: 'cart123', products: [] };
-			sandbox.stub(cartService, 'viewCart').resolves(c.json({ success: true, cart: fakeCart }));
+			// Mock cache miss
+			c.env.CACHE.get.resolves(null);
 
-			await viewCartHandler(c);
+			// Mock findActiveCart - it calls DB.prepare multiple times
+			// First call: SELECT all carts (for debugging)
+			// Second call: SELECT by guest_session_id exact match
+			const allCartsStub = sandbox.stub().resolves({ results: [] });
+			const exactMatchStub = sandbox.stub().resolves(mockCart);
 
-			expect(cartService.viewCart.calledOnce).to.be.true;
-		});
+			c.env.DB.prepare.onCall(0).returns({
+				all: allCartsStub,
+			});
+			c.env.DB.prepare.onCall(1).returns({
+				bind: sandbox.stub().returns({
+					first: exactMatchStub,
+				}),
+			});
+			c.env.CACHE.put.resolves();
 
-		it('should handle empty cart', async () => {
-			c.get.withArgs('user_id').returns('user123');
-			sandbox.stub(cartService, 'viewCart').resolves(c.json({ success: true, cart: null }));
+			const result = await viewCartHandler(c);
 
-			await viewCartHandler(c);
-
-			expect(cartService.viewCart.calledOnce).to.be.true;
+			expect(c.env.CACHE.get.calledOnce).to.be.true;
+			expect(c.env.DB.prepare.called).to.be.true;
+			expect(c.json.calledOnce).to.be.true;
+			const responseArg = c.json.firstCall.args[0];
+			expect(responseArg.success).to.be.true;
+			expect(responseArg.cart.cart_id).to.equal('cart_123');
+			expect(responseArg.cart.item_count).to.equal(1);
 		});
 	});
 });

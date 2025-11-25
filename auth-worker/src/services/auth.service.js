@@ -10,14 +10,25 @@ import { logEvent, logError } from './log.service.js';
 
 export async function registerUser(c) {
 	try {
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Starting user registration');
+		}
 		const body = await c.req.json();
 		const emailNorm = normalizeEmail(body.email);
 		const email_hash = await sha256Hex(emailNorm);
 		if (!body.password || !body.first_name || !body.last_name || !emailNorm) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Validation failed: Missing required fields');
+			}
 			return c.json({ error: 'Missing required fields' }, 400);
 		}
 		const exists = await findUserByEmailHash(c.env.DB, email_hash);
-		if (exists) return c.json({ error: 'User already exists' }, 409);
+		if (exists) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Registration failed: User already exists');
+			}
+			return c.json({ error: 'User already exists' }, 409);
+		}
 
 		const encKey = c.env.AUTH_ENC_KEY || c.env.ENCRYPTION_KEY || '';
 		const email_cipher = await encryptData(emailNorm, encKey);
@@ -25,8 +36,14 @@ export async function registerUser(c) {
 		const addresses_cipher = Array.isArray(body.addresses) ? await encryptData(JSON.stringify(body.addresses), encKey) : null;
 		const password_hash = await bcrypt.hash(String(body.password), 10);
 		const user_id = crypto.randomUUID();
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Generated user_id: ${user_id}`);
+		}
 		const { ip, ua } = getClientInfo(c);
 
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Inserting user: ${body.first_name} ${body.last_name}`);
+		}
 		await insertUser(c.env.DB, {
 			user_id,
 			email_hash,
@@ -64,6 +81,9 @@ export async function registerUser(c) {
 			expires_at,
 		});
 		setRefreshTokenCookie(c, refreshToken);
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('User registration completed successfully');
+		}
 		await logEvent(c.env, 'register_success', { user_id });
 		return c.json({ accessToken });
 	} catch (err) {
@@ -74,14 +94,32 @@ export async function registerUser(c) {
 
 export async function loginUser(c) {
 	try {
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Starting user login');
+		}
 		const { email, password } = await c.req.json();
 		const emailNorm = normalizeEmail(email);
-		if (!emailNorm || !password) return c.json({ error: 'Missing credentials' }, 400);
+		if (!emailNorm || !password) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Login failed: Missing credentials');
+			}
+			return c.json({ error: 'Missing credentials' }, 400);
+		}
 		const email_hash = await sha256Hex(emailNorm);
 		const user = await findUserByEmailHash(c.env.DB, email_hash);
-		if (!user) return c.json({ error: 'Invalid credentials' }, 401);
+		if (!user) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Login failed: User not found');
+			}
+			return c.json({ error: 'Invalid credentials' }, 401);
+		}
 		const ok = await bcrypt.compare(String(password), user.password_hash);
-		if (!ok) return c.json({ error: 'Invalid credentials' }, 401);
+		if (!ok) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Login failed: Invalid password');
+			}
+			return c.json({ error: 'Invalid credentials' }, 401);
+		}
 
 		const { ip, ua } = getClientInfo(c);
 		await updateUserLastLogin(c.env.DB, user.user_id, ip);
@@ -93,6 +131,9 @@ export async function loginUser(c) {
 		const expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 		await storeRefreshToken(c.env.DB, { token_id, user_id: user.user_id, token_hash, user_agent: ua, ip_address: ip, expires_at });
 		setRefreshTokenCookie(c, refreshToken);
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`User login completed successfully for user: ${user.user_id}`);
+		}
 		await logEvent(c.env, 'login_success', { user_id: user.user_id });
 		return c.json({ accessToken });
 	} catch (err) {
@@ -103,11 +144,24 @@ export async function loginUser(c) {
 
 export async function refreshToken(c) {
 	try {
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Starting token refresh');
+		}
 		const rt = getRefreshTokenFromCookie(c);
-		if (!rt) return c.json({ error: 'No refresh token' }, 401);
+		if (!rt) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Token refresh failed: No refresh token');
+			}
+			return c.json({ error: 'No refresh token' }, 401);
+		}
 		const token_hash = await hashRefreshToken(rt);
 		const rec = await getRefreshToken(c.env.DB, token_hash);
-		if (!rec) return c.json({ error: 'Invalid refresh token' }, 401);
+		if (!rec) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Token refresh failed: Invalid refresh token');
+			}
+			return c.json({ error: 'Invalid refresh token' }, 401);
+		}
 		if (new Date(rec.expires_at).getTime() <= Date.now()) {
 			await revokeRefreshToken(c.env.DB, { token_hash });
 			return c.json({ error: 'Refresh token expired' }, 401);
@@ -131,6 +185,9 @@ export async function refreshToken(c) {
 			expires_at,
 		});
 		setRefreshTokenCookie(c, newRt);
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Token refresh completed successfully for user: ${user.user_id}`);
+		}
 		return c.json({ accessToken });
 	} catch (err) {
 		await logError(c.env, 'refresh_error', { message: err?.message });
@@ -153,6 +210,9 @@ export async function logoutUser(c) {
 }
 
 export async function getCurrentUser(c) {
+	if (c.req.addTraceLog) {
+		c.req.addTraceLog('Fetching current user profile');
+	}
 	const { user_id } = c.get('auth');
 	const minimal = c.req.query('minimal') === 'true' || c.req.query('fields') === 'username';
 

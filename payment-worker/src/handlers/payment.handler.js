@@ -14,12 +14,24 @@ import { getPayPalAccessToken } from '../services/paypal.service.js';
  */
 export async function createPaymentHandler(c) {
 	try {
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Creating PayPal payment order');
+		}
 		const { total, currency = 'USD', description = 'Order payment', return_url, cancel_url } = await c.req.json();
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Total: ${total} ${currency}`);
+		}
 
 		if (!total || Number(total) <= 0) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Validation failed: Invalid total amount');
+			}
 			return c.json({ success: false, error: 'Invalid total amount' }, 400);
 		}
 
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Fetching PayPal access token');
+		}
 		const accessToken = await getPayPalAccessToken(c.env);
 		const base = c.env.PAYPAL_API_BASE || 'https://api-m.sandbox.paypal.com';
 
@@ -51,6 +63,9 @@ export async function createPaymentHandler(c) {
 
 		const data = await res.json().catch(() => ({}));
 		if (!res.ok) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog(`PayPal order creation failed: ${data.message || res.status}`);
+			}
 			console.error('[payment-create] PayPal error payload:', {
 				status: res.status,
 				name: data.name,
@@ -61,6 +76,9 @@ export async function createPaymentHandler(c) {
 		}
 
 		const approvalLink = (data.links || []).find((l) => l.rel === 'approve')?.href || null;
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`PayPal order created: ${data.id}, Status: ${data.status}`);
+		}
 
 		return c.json({
 			success: true,
@@ -82,13 +100,25 @@ export async function createPaymentHandler(c) {
  */
 export async function capturePaymentHandler(c) {
 	try {
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Capturing PayPal payment');
+		}
 		const { paypal_order_id } = await c.req.json();
 		console.log(`[payment-capture] Starting capture for order: ${paypal_order_id}`);
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`PayPal Order ID: ${paypal_order_id}`);
+		}
 
 		if (!paypal_order_id) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Validation failed: paypal_order_id is required');
+			}
 			return c.json({ success: false, error: 'paypal_order_id is required' }, 400);
 		}
 
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Fetching PayPal access token');
+		}
 		const accessToken = await getPayPalAccessToken(c.env);
 		const base = c.env.PAYPAL_API_BASE || 'https://api-m.sandbox.paypal.com';
 
@@ -112,6 +142,9 @@ export async function capturePaymentHandler(c) {
 
 			// If order is already completed, return success
 			if (orderStatus === 'COMPLETED') {
+				if (c.req.addTraceLog) {
+					c.req.addTraceLog('Order already completed');
+				}
 				const existingCapture = orderData.purchase_units?.[0]?.payments?.captures?.[0];
 				console.log(`[payment-capture] Order already completed. Capture ID: ${existingCapture?.id || 'N/A'}`);
 				return c.json({
@@ -124,6 +157,9 @@ export async function capturePaymentHandler(c) {
 
 			// Check if order is cancelled or expired
 			if (orderStatus === 'CANCELLED' || orderStatus === 'VOIDED') {
+				if (c.req.addTraceLog) {
+					c.req.addTraceLog(`Order is ${orderStatus}, cannot capture`);
+				}
 				console.error(`[payment-capture] Order is ${orderStatus}. Cannot capture.`);
 				return c.json(
 					{
@@ -154,6 +190,9 @@ export async function capturePaymentHandler(c) {
 		}
 
 		// Now attempt capture
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Attempting to capture PayPal order');
+		}
 		console.log(`[payment-capture] Attempting to capture order: ${paypal_order_id}`);
 		const res = await fetch(`${base}/v2/checkout/orders/${encodeURIComponent(paypal_order_id)}/capture`, {
 			method: 'POST',
@@ -176,6 +215,9 @@ export async function capturePaymentHandler(c) {
 		});
 
 		if (!res.ok) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog(`PayPal capture failed: ${data.message || res.status}`);
+			}
 			// Extract error details
 			const errorDetails = data.details || [];
 			const errorIssues = Array.isArray(errorDetails) ? errorDetails.map((d) => d.issue) : [];
@@ -277,6 +319,9 @@ export async function capturePaymentHandler(c) {
 
 		const status = data.status || 'UNKNOWN';
 		console.log(`[payment-capture] Capture successful. Status: ${status}`);
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`PayPal payment captured successfully. Status: ${status}`);
+		}
 
 		return c.json({
 			success: true,

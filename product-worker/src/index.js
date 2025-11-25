@@ -20,7 +20,7 @@ app.use(
 	}),
 );
 
-app.use('*', tracingMiddleware); // Add cf-ray to spans
+app.use('*', tracingMiddleware); // Add cf-ray and trace logs to spans
 app.use('*', loggingMiddleware);
 
 registerProductRoutes(app);
