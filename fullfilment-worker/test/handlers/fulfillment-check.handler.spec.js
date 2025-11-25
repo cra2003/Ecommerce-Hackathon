@@ -1,9 +1,6 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 import { fulfillmentCheckHandler } from '../../src/handlers/fulfillment-check.handler.js';
-import * as postalMapService from '../../src/services/postal-map.service.js';
-import * as inventoryService from '../../src/services/inventory.service.js';
-import * as fulfillmentService from '../../src/services/fulfillment.service.js';
 
 describe('Fulfillment Check Handler', () => {
 	let c, sandbox;
@@ -15,8 +12,13 @@ describe('Fulfillment Check Handler', () => {
 				json: sandbox.stub(),
 			},
 			env: {
-				DB: {},
+				DB: {
+					prepare: sandbox.stub(),
+				},
 				LOCKS: null,
+				LOGS: {
+					put: sandbox.stub().resolves(),
+				},
 			},
 			json: sandbox.stub().returnsThis(),
 		};
@@ -34,25 +36,55 @@ describe('Fulfillment Check Handler', () => {
 			};
 			c.req.json.resolves(checkData);
 
-			const fakeMappings = [{ start_postal_code: '110000', end_postal_code: '110099', region_name: 'Delhi' }];
-			const fakeInventory = [{ warehouse_id: 'wh1', stock_for_size: 10, sku: 'P0001-10' }];
-			const fakeAllocations = [{ warehouse_id: 'wh1', allocated_quantity: 1, tier: 'tier_1' }];
+			// Stub DB to return postal mappings
+			const fakeMappings = [
+				{
+					start_postal_code: '110000',
+					end_postal_code: '110099',
+					region_name: 'Delhi',
+					warehouses: '["wh_001"]',
+				},
+			];
 
-			sandbox.stub(postalMapService, 'getAllPostalMappings').resolves(fakeMappings);
-			sandbox.stub(postalMapService, 'findMatchedMapping').returns(fakeMappings[0]);
-			sandbox.stub(postalMapService, 'getPriorityWarehouses').returns([{ warehouse_id: 'wh1' }]);
-			sandbox.stub(inventoryService, 'getInventoryByProductAndWarehouses').resolves(fakeInventory);
-			sandbox.stub(inventoryService, 'parseInventoryToStockMap').returns({ wh1: 10 });
-			sandbox.stub(fulfillmentService, 'allocateQuantityAcrossWarehouses').resolves({
-				allocations: fakeAllocations,
-				remainingQuantity: 0,
-				anyExpressAvailable: true,
+			c.env.DB.prepare.onCall(0).returns({
+				all: sandbox.stub().resolves({ results: fakeMappings }),
 			});
-			sandbox.stub(fulfillmentService, 'determineHighestTier').returns('tier_1');
+
+			// Stub inventory query
+			c.env.DB.prepare.onCall(1).returns({
+				bind: sandbox.stub().returns({
+					all: sandbox.stub().resolves({
+						results: [
+							{
+								warehouse_id: 'wh_001',
+								size: '10',
+								stock: 10,
+								express_warehouses: '["wh_001"]',
+							},
+						],
+					}),
+				}),
+			});
+
+			// Stub delivery cost query
+			c.env.DB.prepare.onCall(2).returns({
+				bind: sandbox.stub().returns({
+					all: sandbox.stub().resolves({
+						results: [
+							{
+								tier_name: 'tier_1',
+								standard_delivery_cost: 50,
+								express_delivery_cost: 100,
+							},
+						],
+					}),
+				}),
+			});
 
 			await fulfillmentCheckHandler(c);
 
-			expect(postalMapService.getAllPostalMappings.calledOnce).to.be.true;
+			expect(c.env.DB.prepare.called).to.be.true;
+			expect(c.json.calledOnce).to.be.true;
 		});
 
 		it('should return 400 for missing fields', async () => {
@@ -71,8 +103,9 @@ describe('Fulfillment Check Handler', () => {
 				quantity: 1,
 			});
 
-			sandbox.stub(postalMapService, 'getAllPostalMappings').resolves([]);
-			sandbox.stub(postalMapService, 'findMatchedMapping').returns(null);
+			c.env.DB.prepare.returns({
+				all: sandbox.stub().resolves({ results: [] }),
+			});
 
 			await fulfillmentCheckHandler(c);
 

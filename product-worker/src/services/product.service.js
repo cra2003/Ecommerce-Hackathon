@@ -5,8 +5,14 @@ import { getCached, setCached, invalidateCache } from './cache.service.js';
 
 export async function createProduct(c) {
 	try {
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Creating new product');
+		}
 		const contentType = c.req.header('Content-Type') || '';
 		const product_id = crypto.randomUUID();
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Generated product_id: ${product_id}`);
+		}
 
 		// Common container for fields
 		let payload = {
@@ -98,11 +104,23 @@ export async function createProduct(c) {
 
 		// Validate required fields per schema
 		if (!payload.name || !payload.color_family || !payload.available_sizes || !payload.primary_image_url) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Validation failed: Missing required fields');
+			}
 			return c.json({ error: 'Missing required fields: name, color_family, available_sizes, primary_image_url' }, 400);
 		}
 
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Inserting product: ${payload.name}`);
+		}
 		await insertProduct(c.env.DB, payload);
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Product inserted successfully, invalidating cache');
+		}
 		await invalidateCache(c, ['product:list']);
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Product creation completed');
+		}
 
 		return c.json(
 			{
@@ -120,6 +138,9 @@ export async function createProduct(c) {
 
 export async function listAllProducts(c) {
 	try {
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Listing all products');
+		}
 		// Get pagination parameters - CRITICAL: These must come from query string
 		const pageParam = c.req.query('page');
 		const limitParam = c.req.query('limit');
@@ -164,6 +185,9 @@ export async function listAllProducts(c) {
 		const productList = products.results || [];
 
 		console.log('✅ Returning', productList.length, 'products for page', page);
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Returning ${productList.length} products for page ${page} (total: ${total})`);
+		}
 
 		// Return paginated response
 		return c.json({
@@ -199,6 +223,9 @@ export async function listAllProducts(c) {
 
 export async function listProducts(c) {
 	try {
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Listing products with filters');
+		}
 		// Parse query parameters - support both page/limit and direct offset
 		const page = parseInt(c.req.query('page') || '1', 10);
 		const limit = parseInt(c.req.query('limit') || '12', 10);
@@ -209,6 +236,13 @@ export async function listProducts(c) {
 		const target_audience = c.req.query('target_audience');
 		const closure_type = c.req.query('closure_type');
 		const sole_material = c.req.query('sole_material');
+
+		if (c.req.addTraceLog) {
+			const activeFilters = [category, brand, gender, target_audience, closure_type, sole_material].filter(Boolean).join(', ');
+			if (activeFilters) {
+				c.req.addTraceLog(`Active filters: ${activeFilters}`);
+			}
+		}
 
 		// Use offset if provided, otherwise calculate from page
 		const offset = offsetParam ? parseInt(offsetParam, 10) : (page - 1) * limit;
@@ -273,6 +307,10 @@ export async function listProducts(c) {
 
 		const totalPages = Math.ceil(total / validLimit);
 
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Found ${total} products, returning ${(products.results || []).length} for page ${validPage}`);
+		}
+
 		return c.json({
 			products: products.results || [],
 			pagination: {
@@ -293,16 +331,33 @@ export async function listProducts(c) {
 export async function getProduct(c) {
 	try {
 		const id = c.req.param('id');
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Fetching product: ${id}`);
+		}
 		const cacheKey = `product:${id}`;
 
 		const cached = await getCached(c, cacheKey);
-		if (cached) return c.json(cached);
+		if (cached) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Product found in cache');
+			}
+			return c.json(cached);
+		}
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Cache miss, querying database');
+		}
 		const results = await getProductById(c.env.DB, id);
 
 		if (results.length === 0) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Product not found in database');
+			}
 			return c.json({ error: 'Product not found' }, 404);
 		}
 
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Product found, caching result');
+		}
 		await setCached(c, cacheKey, results[0]);
 		return c.json(results[0]);
 	} catch (err) {
@@ -313,6 +368,9 @@ export async function getProduct(c) {
 export async function updateProductService(c) {
 	try {
 		const id = c.req.param('id');
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Updating product: ${id}`);
+		}
 		const contentType = c.req.header('Content-Type') || '';
 
 		// Load existing to support partial updates and image cleanup
@@ -384,11 +442,23 @@ export async function updateProductService(c) {
 		// Ensure there is something to update
 		const keys = Object.keys(updates);
 		if (keys.length === 0) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('No changes provided for update');
+			}
 			return c.json({ message: 'No changes provided' });
 		}
 
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Updating ${keys.length} field(s): ${keys.join(', ')}`);
+		}
 		await updateProduct(c.env.DB, id, updates);
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Product updated, invalidating cache');
+		}
 		await invalidateCache(c, ['product:list', `product:${id}`]);
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Product update completed');
+		}
 
 		return c.json({ message: 'Product updated successfully' });
 	} catch (err) {
@@ -400,23 +470,41 @@ export async function updateProductService(c) {
 export async function deleteProductService(c) {
 	try {
 		const id = c.req.param('id');
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Deleting product: ${id}`);
+		}
 
 		// 1️⃣ Check if product exists
 		const productResults = await getProductById(c.env.DB, id);
 		const product = productResults[0];
 
 		if (!product) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Product not found for deletion');
+			}
 			return c.json({ error: 'Product not found' }, 404);
 		}
 
 		// 2️⃣ If product has an image, delete it from R2
 		if (product.primary_image_url) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Deleting product image from R2');
+			}
 			await deleteProductImage(c.env, product.primary_image_url);
 		}
 
 		// 3️⃣ Delete product record from D1
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Deleting product from database');
+		}
 		await deleteProduct(c.env.DB, id);
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Invalidating cache');
+		}
 		await invalidateCache(c, ['product:list', `product:${id}`]);
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Product deletion completed');
+		}
 		return c.json({ message: 'Product and associated image deleted successfully' });
 	} catch (err) {
 		console.error(err);

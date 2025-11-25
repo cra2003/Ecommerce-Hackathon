@@ -17,6 +17,7 @@
 		"lint:fix": "npm run lint:fix -ws",
 		"format": "npm run format -ws",
 		"format:check": "prettier --check \"**/*.{js,json,md}\" --ignore-path .gitignore --ignore-path frontend-ui/.gitignore --ignore \"frontend-ui/**\" --ignore \"**/node_modules/**\" --ignore \"**/.wrangler/**\" --ignore \"**/.svelte-kit/**\"",
+		"test": "npm run test -ws --if-present",
 		"prepare": "husky"
 	},
 	"devDependencies": {

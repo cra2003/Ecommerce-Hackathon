@@ -8,9 +8,15 @@ import { getPriceBySku, getPriceBySkuAndProductId } from '../models/price.model.
  */
 export async function getPrice(c, sku, productId = null) {
 	try {
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Fetching price for SKU: ${sku}${productId ? `, Product ID: ${productId}` : ''}`);
+		}
 		// Try cache first
 		const cached = await getCachedPrice(c, sku, productId);
 		if (cached) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Price found in cache');
+			}
 			return c.json(cached);
 		}
 
@@ -24,6 +30,9 @@ export async function getPrice(c, sku, productId = null) {
 		}
 
 		if (!result) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Price not found in database');
+			}
 			return c.json(
 				{
 					success: false,
@@ -60,6 +69,9 @@ export async function getPrice(c, sku, productId = null) {
 
 		// Cache the response for 5 minutes
 		await setCachedPrice(c, sku, productId, response, 300);
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Price fetched: ${currentPrice} ${result.currency}${isOnSale ? ' (On Sale)' : ''}`);
+		}
 
 		return c.json(response);
 	} catch (error) {

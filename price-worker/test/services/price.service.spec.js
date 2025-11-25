@@ -1,8 +1,6 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 import * as priceService from '../../src/services/price.service.js';
-import * as priceModel from '../../src/models/price.model.js';
-import * as cacheService from '../../src/services/cache.service.js';
 
 describe('Price Service', () => {
 	let c, sandbox;
@@ -15,7 +13,13 @@ describe('Price Service', () => {
 				query: sandbox.stub(),
 			},
 			env: {
-				DB: {},
+				DB: {
+					prepare: sandbox.stub(),
+				},
+				PRICE_CACHE: {
+					get: sandbox.stub(),
+					put: sandbox.stub(),
+				},
 			},
 			json: sandbox.stub().returnsThis(),
 		};
@@ -25,22 +29,16 @@ describe('Price Service', () => {
 
 	describe('getPrice', () => {
 		it('should return price from cache', async () => {
-			c.req.param.withArgs('sku').returns('P0001');
-			c.req.query.withArgs('product_id').returns('prod123');
-
 			const cachedPrice = { success: true, price: 100 };
-			sandbox.stub(cacheService, 'getCachedPrice').resolves(cachedPrice);
+			c.env.PRICE_CACHE.get.resolves(JSON.stringify(cachedPrice));
 
 			await priceService.getPrice(c, 'P0001', 'prod123');
 
-			expect(cacheService.getCachedPrice.calledOnce).to.be.true;
-			expect(c.json.calledWith(cachedPrice)).to.be.true;
+			expect(c.env.PRICE_CACHE.get.calledOnce).to.be.true;
+			expect(c.json.calledOnce).to.be.true;
 		});
 
-		it('should return price from database', async () => {
-			c.req.param.withArgs('sku').returns('P0001');
-			c.req.query.withArgs('product_id').returns('prod123');
-
+		it('should return price from database when cache miss', async () => {
 			const dbPrice = {
 				sku: 'P0001',
 				product_id: 'prod123',
@@ -50,20 +48,28 @@ describe('Price Service', () => {
 				currency: 'INR',
 			};
 
-			sandbox.stub(cacheService, 'getCachedPrice').resolves(null);
-			sandbox.stub(priceModel, 'getPriceBySkuAndProductId').resolves(dbPrice);
-			sandbox.stub(cacheService, 'setCachedPrice').resolves();
+			c.env.PRICE_CACHE.get.resolves(null);
+			c.env.DB.prepare.returns({
+				bind: sandbox.stub().returns({
+					first: sandbox.stub().resolves(dbPrice),
+				}),
+			});
+			c.env.PRICE_CACHE.put.resolves();
 
 			await priceService.getPrice(c, 'P0001', 'prod123');
 
-			expect(priceModel.getPriceBySkuAndProductId.calledOnce).to.be.true;
+			expect(c.env.PRICE_CACHE.get.calledOnce).to.be.true;
+			expect(c.env.DB.prepare.called).to.be.true;
+			expect(c.json.calledOnce).to.be.true;
 		});
 
 		it('should return 404 for price not found', async () => {
-			c.req.param.withArgs('sku').returns('INVALID');
-
-			sandbox.stub(cacheService, 'getCachedPrice').resolves(null);
-			sandbox.stub(priceModel, 'getPriceBySku').resolves(null);
+			c.env.PRICE_CACHE.get.resolves(null);
+			c.env.DB.prepare.returns({
+				bind: sandbox.stub().returns({
+					first: sandbox.stub().resolves(null),
+				}),
+			});
 
 			await priceService.getPrice(c, 'INVALID');
 

@@ -18,14 +18,23 @@ import { logEvent, logError } from '../services/log.service.js';
 export async function fulfillmentCheckHandler(c) {
 	let body = {};
 	try {
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Starting fulfillment check');
+		}
 		body = await c.req.json();
 		const { postal_code, product_id, size, quantity } = body;
 
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Postal: ${postal_code}, Product: ${product_id}, Size: ${size}, Qty: ${quantity}`);
+		}
 		console.log(`[fulfillment-check] START: postal_code=${postal_code}, product_id=${product_id}, size=${size}, qty=${quantity}`);
 		await logEvent(c.env, 'fulfillment_check_started', { postal_code, product_id, size, quantity });
 
 		// Validation
 		if (!postal_code || !product_id || !size || !quantity) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Validation failed: Missing required fields');
+			}
 			console.log(`[fulfillment-check] ERROR: Missing required fields`);
 			return c.json(
 				{
@@ -37,6 +46,9 @@ export async function fulfillmentCheckHandler(c) {
 		}
 
 		if (quantity <= 0) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog(`Validation failed: Invalid quantity: ${quantity}`);
+			}
 			console.log(`[fulfillment-check] ERROR: Invalid quantity: ${quantity}`);
 			return c.json(
 				{
@@ -48,6 +60,9 @@ export async function fulfillmentCheckHandler(c) {
 		}
 
 		// STEP 1: Find warehouses for postal code
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Finding warehouses for postal code: ${postal_code}`);
+		}
 		console.log(`[fulfillment-check] STEP 1: Finding warehouses for postal code ${postal_code}`);
 		const postalMappings = await getAllPostalMappings(c.env.DB);
 
@@ -56,6 +71,9 @@ export async function fulfillmentCheckHandler(c) {
 		const matchedMapping = findMatchedMapping(postalMappings, postal_code);
 
 		if (!matchedMapping) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog(`No warehouse coverage for postal code: ${postal_code}`);
+			}
 			console.log(`[fulfillment-check] ERROR: No warehouse coverage for postal code ${postal_code}`);
 			return c.json(
 				{
@@ -78,6 +96,9 @@ export async function fulfillmentCheckHandler(c) {
 		);
 
 		if (priorityWarehouses.length === 0) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('No warehouses configured for region');
+			}
 			console.log(`[fulfillment-check] ERROR: No warehouses configured for region`);
 			return c.json(
 				{
@@ -89,6 +110,9 @@ export async function fulfillmentCheckHandler(c) {
 		}
 
 		// STEP 2: Fetch product inventory for priority warehouses
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Fetching inventory for product ${product_id}, size ${size} in ${priorityWarehouses.length} warehouse(s)`);
+		}
 		console.log(`[fulfillment-check] STEP 2: Fetching inventory for product ${product_id}, size ${size} in warehouses`);
 		const warehouseIds = priorityWarehouses.map((wh) => wh.warehouse_id);
 
@@ -103,6 +127,9 @@ export async function fulfillmentCheckHandler(c) {
 		console.log(`[fulfillment-check] Found inventory in ${inventoryResults?.length || 0} warehouses`);
 
 		if (!inventoryResults || inventoryResults.length === 0) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Product not available in any warehouse');
+			}
 			console.log(`[fulfillment-check] ERROR: Product not available in any warehouse`);
 			return c.json(
 				{
@@ -128,6 +155,11 @@ export async function fulfillmentCheckHandler(c) {
 		console.log(`[fulfillment-check] SKU ID for locks: ${skuId || 'NOT AVAILABLE (locks will be skipped)'}`);
 
 		// STEP 5: Allocate quantity across warehouses based on priority (with lock awareness)
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(
+				`Allocating ${quantity} units across warehouses${skuId ? ` (checking locks for SKU: ${skuId})` : ' (locks disabled - SKU not found)'}`,
+			);
+		}
 		console.log(
 			`[fulfillment-check] STEP 4: Allocating ${quantity} units across warehouses${skuId ? ` (checking locks for SKU: ${skuId})` : ' (locks disabled - SKU not found)'}`,
 		);
@@ -143,6 +175,11 @@ export async function fulfillmentCheckHandler(c) {
 
 		// STEP 5: Check if we could fulfill the full quantity
 		if (remainingQuantity > 0) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog(
+					`Insufficient stock. Requested: ${quantity}, Fulfilled: ${quantity - remainingQuantity}, Short: ${remainingQuantity}`,
+				);
+			}
 			console.log(
 				`[fulfillment-check] ERROR: Insufficient stock. Requested ${quantity}, fulfilled ${quantity - remainingQuantity}, short ${remainingQuantity}`,
 			);
@@ -212,6 +249,12 @@ export async function fulfillmentCheckHandler(c) {
 			warehouses_used: allocations.length,
 			tiers_used: tiersUsed,
 		});
+
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(
+				`Fulfillment check completed. Tier: ${highestTier}, Express: ${anyExpressAvailable}, Warehouses: ${allocations.length}`,
+			);
+		}
 
 		return c.json({
 			success: true,

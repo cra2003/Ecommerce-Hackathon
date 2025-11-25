@@ -156,28 +156,7 @@ jobs:
         run: npm run format:check
 
       - name: Run tests
-        run: |
-          WORKERS="auth-worker cart-worker cart-cron-worker order-worker payment-worker fullfilment-worker price-worker product-worker"
-          HAS_TESTS=false
-          
-          for worker in $WORKERS; do
-            if [ -f "$worker/package.json" ] && grep -q '"test"' "$worker/package.json"; then
-              echo "🧪 Running tests for $worker..."
-              cd "$worker"
-              if npm test 2>&1; then
-                echo "✅ $worker: tests passed"
-                HAS_TESTS=true
-              else
-                echo "❌ $worker: tests failed"
-                exit 1
-              fi
-              cd ..
-            fi
-          done
-          
-          if [ "$HAS_TESTS" = false ]; then
-            echo "ℹ️  No tests found, skipping test step"
-          fi
+        run: npm test
 
       - name: Run knip (non-blocking)
         continue-on-error: true

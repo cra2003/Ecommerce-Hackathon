@@ -12,5 +12,5 @@ database_id = "f63d3bc2-2c38-4bab-91d0-d748c96c747b"
 
 [triggers]
 # Every minute (for testing)
-crons = ["* * * * *"]
+crons = ["0 0 */2 * *"]
 

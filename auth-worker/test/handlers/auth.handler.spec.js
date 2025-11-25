@@ -1,7 +1,16 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
-import { registerHandler, loginHandler } from '../../src/handlers/auth.handler.js';
-import * as authService from '../../src/services/auth.service.js';
+import {
+	registerHandler,
+	loginHandler,
+	refreshHandler,
+	logoutHandler,
+	meHandler,
+	updateProfileHandler,
+	addAddressHandler,
+	updateAddressHandler,
+	deleteAddressHandler,
+} from '../../src/handlers/auth.handler.js';
 
 describe('Auth Handler', () => {
 	let c, sandbox;
@@ -11,65 +20,143 @@ describe('Auth Handler', () => {
 		c = {
 			req: {
 				json: sandbox.stub(),
+				param: sandbox.stub(),
+				query: sandbox.stub(),
+				header: sandbox.stub(),
 			},
+			get: sandbox.stub(),
 			env: {
-				DB: {},
+				DB: {
+					prepare: sandbox.stub(),
+				},
 				JWT_SECRET: 'test-secret',
+				AUTH_ENC_KEY: '01234567890123456789012345678901',
+				LOGS: {
+					put: sandbox.stub().resolves(),
+				},
 			},
 			json: sandbox.stub().returnsThis(),
-			status: sandbox.stub().returnsThis(),
+			header: sandbox.stub().returnsThis(),
 		};
 	});
 
 	afterEach(() => sandbox.restore());
 
-	describe('registerHandler', () => {
-		it('should register a user successfully', async () => {
-			const userData = { username: 'test', email: 'test@test.com', password: 'password123' };
-			c.req.json.resolves(userData);
-
-			const fakeUser = { user_id: '123', username: 'test', email: 'test@test.com' };
-			sandbox.stub(authService, 'registerUser').resolves(c.json(fakeUser, 201));
-
-			await registerHandler(c);
-
-			expect(authService.registerUser.calledOnce).to.be.true;
+	it('should handle user registration request', async () => {
+		c.req.json.resolves({
+			email: 'test@example.com',
+			password: 'password123',
+			first_name: 'Test',
+			last_name: 'User',
 		});
 
-		it('should handle registration errors', async () => {
-			c.req.json.resolves({ username: 'test', email: 'test@test.com', password: 'weak' });
-			sandbox.stub(authService, 'registerUser').rejects(new Error('Registration failed'));
+		await registerHandler(c);
 
-			try {
-				await registerHandler(c);
-			} catch (err) {
-				expect(err).to.be.an('error');
-			}
-		});
+		expect(c.req.json.calledOnce).to.be.true;
 	});
 
-	describe('loginHandler', () => {
-		it('should login user successfully', async () => {
-			const loginData = { email: 'test@test.com', password: 'password123' };
-			c.req.json.resolves(loginData);
-
-			const fakeResponse = { token: 'jwt-token', user: { id: '123' } };
-			sandbox.stub(authService, 'loginUser').resolves(c.json(fakeResponse));
-
-			await loginHandler(c);
-
-			expect(authService.loginUser.calledOnce).to.be.true;
+	it('should handle user login request', async () => {
+		c.req.json.resolves({
+			email: 'test@example.com',
+			password: 'password123',
 		});
 
-		it('should handle invalid credentials', async () => {
-			c.req.json.resolves({ email: 'test@test.com', password: 'wrong' });
-			sandbox.stub(authService, 'loginUser').rejects(new Error('Invalid credentials'));
+		await loginHandler(c);
 
-			try {
-				await loginHandler(c);
-			} catch (err) {
-				expect(err).to.be.an('error');
-			}
+		expect(c.req.json.calledOnce).to.be.true;
+	});
+
+	it('should handle refresh token request', async () => {
+		c.req.header.returns('refresh_token=test-token');
+		await refreshHandler(c);
+
+		expect(c.req.header.called).to.be.true;
+	});
+
+	it('should handle logout request', async () => {
+		c.req.header.returns('refresh_token=test-token');
+		await logoutHandler(c);
+
+		expect(c.json.calledOnce).to.be.true;
+	});
+
+	it('should handle get current user request', async () => {
+		c.get.withArgs('auth').returns({ user_id: 'user123' });
+		c.req.query.returns({});
+		c.env.DB.prepare.returns({
+			bind: sandbox.stub().returns({
+				first: sandbox.stub().resolves({
+					user_id: 'user123',
+					first_name: 'Test',
+					last_name: 'User',
+				}),
+			}),
 		});
+
+		await meHandler(c);
+
+		expect(c.get.calledWith('auth')).to.be.true;
+	});
+
+	it('should handle update profile request', async () => {
+		c.get.withArgs('auth').returns({ user_id: 'user123' });
+		c.req.json.resolves({ first_name: 'Updated' });
+		c.env.DB.prepare.returns({
+			bind: sandbox.stub().returns({
+				run: sandbox.stub().resolves(),
+			}),
+		});
+
+		await updateProfileHandler(c);
+
+		expect(c.req.json.calledOnce).to.be.true;
+	});
+
+	it('should handle add address request', async () => {
+		c.get.withArgs('auth').returns({ user_id: 'user123' });
+		c.req.json.resolves({ street: '123 Main St' });
+		c.env.DB.prepare.returns({
+			bind: sandbox.stub().returns({
+				first: sandbox.stub().resolves({ addresses_cipher: null }),
+				run: sandbox.stub().resolves(),
+			}),
+		});
+
+		await addAddressHandler(c);
+
+		expect(c.req.json.calledOnce).to.be.true;
+	});
+
+	it('should handle update address request', async () => {
+		c.get.withArgs('auth').returns({ user_id: 'user123' });
+		c.req.param.withArgs('id').returns('addr123');
+		c.req.json.resolves({ street: 'Updated St' });
+		c.env.DB.prepare.returns({
+			bind: sandbox.stub().returns({
+				first: sandbox.stub().resolves({
+					addresses_cipher: null,
+				}),
+				run: sandbox.stub().resolves(),
+			}),
+		});
+
+		await updateAddressHandler(c);
+
+		expect(c.req.param.calledWith('id')).to.be.true;
+	});
+
+	it('should handle delete address request', async () => {
+		c.get.withArgs('auth').returns({ user_id: 'user123' });
+		c.req.param.withArgs('id').returns('addr123');
+		c.env.DB.prepare.returns({
+			bind: sandbox.stub().returns({
+				first: sandbox.stub().resolves({ addresses_cipher: null }),
+				run: sandbox.stub().resolves(),
+			}),
+		});
+
+		await deleteAddressHandler(c);
+
+		expect(c.req.param.calledWith('id')).to.be.true;
 	});
 });

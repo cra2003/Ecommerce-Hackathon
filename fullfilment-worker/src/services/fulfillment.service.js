@@ -20,6 +20,10 @@ import { getLockedQuantity } from './inventory-lock.service.js';
  * @returns {Promise<{allocations: Array, remainingQuantity: number, anyExpressAvailable: boolean}>}
  */
 export async function allocateQuantityAcrossWarehouses(priorityWarehouses, inventoryMap, size, quantity, kv = null, skuId = null) {
+	if (kv && skuId) {
+		// Note: addTraceLog is not available in this pure function context
+		// Logs should be added at the handler level
+	}
 	let remainingQuantity = quantity;
 	const allocations = [];
 	let anyExpressAvailable = false;

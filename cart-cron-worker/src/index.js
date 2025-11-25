@@ -7,7 +7,7 @@ export default {
 		await env.DB.prepare(
 			`
 		DELETE FROM carts
-		WHERE soft_deleted = 1
+		WHERE status = 'converted'
 	  `,
 		).run();
 
