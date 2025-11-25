@@ -926,6 +926,9 @@ export async function clearCart(c) {
 // =============== 4️⃣ SAVE SHIPPING ADDRESS ==================
 export async function saveShippingAddress(c) {
 	try {
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Saving shipping address');
+		}
 		const cartInfo = getCartIdentifier(c);
 		const { user_id, guest_session_id, cacheKey } = cartInfo;
 		const { line1, line2, city, state, postal_code, country } = await c.req.json();
@@ -937,11 +940,17 @@ export async function saveShippingAddress(c) {
 
 		// Validation
 		if (!line1 || !city || !state || !postal_code || !country) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Validation failed: Missing required address fields');
+			}
 			return c.json({ success: false, error: 'Missing required address fields' }, 400);
 		}
 
 		// Get or create cart (supports both user and guest)
 		const cart = await getOrCreateCart(c.env.DB, user_id, guest_session_id);
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Cart found/created: ${cart.cart_id}`);
+		}
 
 		// Build address JSON
 		const address = {
@@ -957,6 +966,9 @@ export async function saveShippingAddress(c) {
 		// Update cart with address
 		const addressJson = JSON.stringify(address);
 		await updateCartAddress(c.env.DB, cart.cart_id, addressJson);
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Address saved: ${city}, ${state}, ${postal_code}`);
+		}
 
 		// Invalidate cache
 		if (cacheKey) {
@@ -968,6 +980,9 @@ export async function saveShippingAddress(c) {
 			guest_session_id: guest_session_id || null,
 			cart_id: cart.cart_id,
 		});
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Shipping address saved successfully');
+		}
 
 		return c.json({
 			success: true,
@@ -976,6 +991,9 @@ export async function saveShippingAddress(c) {
 		});
 	} catch (err) {
 		const cartInfo = getCartIdentifier(c);
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Shipping address save failed: ${err.message || 'Unknown error'}`);
+		}
 		await logError(c.env, 'cart_shipping_save_failed', {
 			user_id: cartInfo.user_id || null,
 			guest_session_id: cartInfo.guest_session_id || null,
@@ -995,6 +1013,9 @@ export async function saveShippingAddress(c) {
 // =============== 5️⃣ ORDER SUMMARY (Cart + Delivery Estimates) ==================
 export async function getCartSummary(c) {
 	try {
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog('Fetching cart summary');
+		}
 		const cartInfo = getCartIdentifier(c);
 		const { user_id, guest_session_id, cacheKey } = cartInfo;
 
@@ -1013,6 +1034,9 @@ export async function getCartSummary(c) {
 		if (cacheKey) {
 			const cached = await getCached(c, cacheKey);
 			if (cached && cached.cart_id) {
+				if (c.req.addTraceLog) {
+					c.req.addTraceLog('Cart found in cache');
+				}
 				// Fetch the actual cart from DB using the cart_id from cache
 				cart = await c.env.DB.prepare(
 					`
@@ -1027,9 +1051,15 @@ export async function getCartSummary(c) {
 		// If not in cache, try direct DB lookup
 		if (!cart) {
 			cart = await findActiveCart(c.env.DB, user_id, guest_session_id);
+			if (c.req.addTraceLog && cart) {
+				c.req.addTraceLog('Cart found in database');
+			}
 		}
 
 		if (!cart) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Cart not found');
+			}
 			return c.json({ success: false, error: 'Cart is empty' }, 400);
 		}
 		const products = parseJSON(cart.products, []);
@@ -1037,8 +1067,14 @@ export async function getCartSummary(c) {
 
 		console.log(`[cart-summary] Cart loaded: cart_id=${cart.cart_id}, products=${products.length}`);
 		console.log(`[cart-summary] Address: ${address ? `postal_code=${address.postal_code}, city=${address.city}` : 'NOT SET'}`);
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Cart loaded: ${products.length} item(s), Address: ${address ? address.postal_code : 'NOT SET'}`);
+		}
 
 		if (products.length === 0) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Cart is empty');
+			}
 			console.log(`[cart-summary] ERROR: Cart is empty`);
 			return c.json(
 				{
@@ -1050,6 +1086,9 @@ export async function getCartSummary(c) {
 		}
 
 		if (!address || !address.postal_code) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog('Shipping address not set');
+			}
 			console.log(`[cart-summary] ERROR: No shipping address`);
 			return c.json(
 				{
@@ -1063,9 +1102,15 @@ export async function getCartSummary(c) {
 		// Calculate subtotal
 		const subtotal = products.reduce((sum, item) => sum + item.price * item.quantity, 0);
 		console.log(`[cart-summary] Subtotal calculated: ₹${subtotal}`);
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Subtotal calculated: ₹${subtotal}`);
+		}
 
 		// Call fulfillment for each product to get delivery estimates
 		console.log(`[cart-summary] Starting fulfillment checks for ${products.length} products`);
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Starting fulfillment checks for ${products.length} product(s)`);
+		}
 		const deliveryEstimates = [];
 		let highestTier = null;
 		const tierOrder = ['tier_3', 'tier_2', 'tier_1'];
@@ -1123,6 +1168,9 @@ export async function getCartSummary(c) {
 		console.log(
 			`[cart-summary] All fulfillment checks complete. Estimates count: ${deliveryEstimates.length}, highest tier: ${highestTier}`,
 		);
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Fulfillment checks complete: ${deliveryEstimates.length} estimate(s), Highest tier: ${highestTier || 'none'}`);
+		}
 
 		// Track which products failed allocation
 		const failedProducts = [];
@@ -1144,6 +1192,9 @@ export async function getCartSummary(c) {
 		}
 
 		console.log(`[cart-summary] Allocation results: ${successfulProducts.length} successful, ${failedProducts.length} failed`);
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Allocation results: ${successfulProducts.length} successful, ${failedProducts.length} failed`);
+		}
 
 		// Determine if all products are deliverable
 		const allDeliverable = failedProducts.length === 0;
@@ -1184,6 +1235,11 @@ export async function getCartSummary(c) {
 
 		// If any products failed allocation, return success=false but include summary
 		if (!allDeliverable) {
+			if (c.req.addTraceLog) {
+				c.req.addTraceLog(
+					`Partial deliverability: ${failedProducts.length} product(s) cannot be allocated to postal code ${address.postal_code}`,
+				);
+			}
 			console.log(`[cart-summary] WARNING: ${failedProducts.length} products cannot be allocated to postal code ${address.postal_code}`);
 			return c.json(
 				{
@@ -1203,11 +1259,17 @@ export async function getCartSummary(c) {
 			guest_session_id: guest_session_id || null,
 			item_count: products.length,
 		});
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Cart summary retrieved successfully: ${products.length} product(s), Delivery tier: ${highestTier}`);
+		}
 
 		console.log(`[cart-summary] SUCCESS: Returning summary with ${products.length} products, delivery tier: ${highestTier}`);
 		return c.json({ success: true, summary });
 	} catch (err) {
 		const cartInfo = getCartIdentifier(c);
+		if (c.req.addTraceLog) {
+			c.req.addTraceLog(`Cart summary failed: ${err.message || 'Unknown error'}`);
+		}
 		await logError(c.env, 'cart_summary_failed', {
 			user_id: cartInfo.user_id || null,
 			guest_session_id: cartInfo.guest_session_id || null,
